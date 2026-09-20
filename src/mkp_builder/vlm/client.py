@@ -1,4 +1,4 @@
-"""Ollama HTTP client for VLM and Text LLM inferences."""
+"""Ollama HTTP client for VLM and Text LLM inferences using /api/chat."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class OllamaClient:
-    """Robust client for interacting with local Ollama instance with auto-fallback."""
+    """Robust client for interacting with local Ollama instance using /api/chat with auto-fallback."""
 
     def __init__(
         self,
@@ -53,7 +53,6 @@ class OllamaClient:
             if resp.status_code == 200:
                 data = resp.json()
                 models = {m.get("name") for m in data.get("models", []) if m.get("name")}
-                # Also add base names without :latest if present
                 expanded = set(models)
                 for m in models:
                     if ":" in m:
@@ -128,15 +127,27 @@ class OllamaClient:
         num_predict: int = 512,
         temperature: float = 0.1,
     ) -> str:
-        """Call Ollama /api/generate with retry, fallback, and timeout."""
+        """Call Ollama /api/chat with retry, fallback, and timeout."""
+        if not self.is_alive():
+            self.ensure_server()
+
         initial_target = model or (self.vlm_model if image_bytes else self.text_model)
         target_model = self._resolve_model(initial_target)
 
-        url = f"{self.host}/api/generate"
+        url = f"{self.host}/api/chat"
+
+        msg: dict[str, Any] = {
+            "role": "user",
+            "content": prompt,
+        }
+
+        if image_bytes:
+            b64_img = base64.b64encode(image_bytes).decode("utf-8")
+            msg["images"] = [b64_img]
 
         payload: dict[str, Any] = {
             "model": target_model,
-            "prompt": prompt,
+            "messages": [msg],
             "stream": False,
             "options": {
                 "num_predict": num_predict,
@@ -147,16 +158,11 @@ class OllamaClient:
         if format_json:
             payload["format"] = "json"
 
-        if image_bytes:
-            b64_img = base64.b64encode(image_bytes).decode("utf-8")
-            payload["images"] = [b64_img]
-
         last_error = None
         for attempt in range(1, self.max_retries + 2):
             try:
                 resp = requests.post(url, json=payload, timeout=self.timeout)
                 if resp.status_code == 404 and target_model != self.vlm_model:
-                    # Model not found on server -> try falling back to vlm_model
                     logger.warning("Model '%s' returned 404, falling back to '%s'", target_model, self.vlm_model)
                     target_model = self.vlm_model
                     payload["model"] = target_model
@@ -164,7 +170,8 @@ class OllamaClient:
 
                 resp.raise_for_status()
                 data = resp.json()
-                return data.get("response", "")
+                msg_resp = data.get("message", {})
+                return msg_resp.get("content", "")
             except Exception as e:
                 last_error = e
                 logger.warning(
