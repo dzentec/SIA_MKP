@@ -46,5 +46,6 @@ work/
 .cache/
 *.log
 
-# Large source docs (if needed)
-.init_doc/source_doc/
+# Initial & source documents
+.init_doc/
+init_doc/
