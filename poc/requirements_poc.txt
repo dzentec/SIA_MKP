@@ -1,0 +1,14 @@
+# Phase 0 PoC dependencies
+# Install: pip install -r poc/requirements_poc.txt
+
+docling>=2.15
+lancedb>=0.17
+fastembed
+rapidocr-onnxruntime
+pytesseract
+ollama
+pydantic>=2.0
+rich>=13.0
+ebooklib
+numpy
+scikit-learn

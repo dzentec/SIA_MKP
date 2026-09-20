@@ -1,18 +1,23 @@
 # STATE — MKP Project
 
 **Updated:** 2026-09-20  
-**Current Phase:** 0 (PoC & Validation) — **NOT STARTED**  
-**Overall Status:** Initialized
+**Current Phase:** 0 (PoC & Validation) — **PLANNED / READY TO EXECUTE**  
+**Overall Status:** Phase 0 planned
 
 ---
 
 ## Active Phase
 
-None — проект только что инициализирован.
+**Phase 0 — PoC & Validation** (план готов)
 
-**Next step:** Запустить Phase 0 (PoC & Validation):
-- Проверить все 7 технических рисков из REQ-P0-01..07
-- Доклад по 9 проверкам Phase 0 (§13 HLD) перед стартом Phase 1
+**Plan:** `.planning/phase-0/PLAN.md`  
+**Report template:** `.planning/phase-0/POC_REPORT.md`  
+**PoC scripts:** `poc/p0_0*.py` (создать при выполнении)
+
+**Next step:** Выполнить 7 spike-задач из PLAN.md:
+1. T0-01: Docling figure crop (запускать первым — даёт изображения для T0-02)
+2. T0-02..T0-07: параллельно (независимые задачи)
+3. Заполнить `POC_REPORT.md` → коммит → перейти к Phase 1
 
 ---
 
@@ -20,7 +25,7 @@ None — проект только что инициализирован.
 
 | Phase | Name | Status |
 |-------|------|--------|
-| 0 | PoC & Validation | ⬜ Not started |
+| 0 | PoC & Validation | 📋 Planned |
 | 1 | mkp-builder Core | ⬜ Not started |
 | 2 | mkp-builder Complete | ⬜ Not started |
 | 3 | mkp-server | ⬜ Not started |
