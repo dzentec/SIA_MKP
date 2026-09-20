@@ -8,19 +8,22 @@
 
 ## Active Phase
 
-**Phase 2 — mkp-builder Complete (Triplets & Export)**
+**Phase 3 — mkp-server (Database, Indexing & FastMCP Server)**
 
-**Plan:** `.planning/phase-2/PLAN.md`  
-**Status:** ✅ **COMPLETE (5/5 Tasks)**
+**Plan:** `.planning/phase-3/PLAN.md`  
+**Status:** ⏳ **READY TO EXECUTE (0/8 Tasks)**
 
-**Phase 2 Tasks:**
+**Phase 3 Tasks:**
 | Task | Status | Description |
 |------|--------|-------------|
-| T2-01 Triplet Extraction | ✅ PASS | GraphRAG extractor, normalization, deduplication |
-| T2-02 Bookpack Exporter | ✅ PASS | `.bookpack.zip` packager, `files_sha256` manifest |
-| T2-03 Pipeline & CLI export | ✅ PASS | `mkp-builder export`, TUI triplet progress |
-| T2-04 Golden Dataset | ✅ PASS | 30 stratified benchmark questions (`qa/golden_dataset.json`) |
-| T2-05 Verification & Tests | ✅ PASS | 13 automated tests pass (100%) |
+| T3-01 Base Registry & Structure | ⏳ PENDING | Canonical directory layout, `base.json`, rotating server logger |
+| T3-02 Ingestion, Merge & Verify | ⏳ PENDING | `.bookpack.zip` ingestion, `pack/` merger, `remove-book`, `verify` |
+| T3-03 LanceDB Hybrid Search | ⏳ PENDING | `multilingual-e5-large` embedder (`passage:`/`query:`), FTS, RRFReranker |
+| T3-04 Knowledge Graph Engine | ⏳ PENDING | NetworkX GraphRAG, multi-hop entity traversal, provenance |
+| T3-05 Blue-Green Lifecycle | ⏳ PENDING | Build in `derived_new/`, smoke test, atomic swap & in-memory hot reload |
+| T3-06 FastMCP Server & 5 Tools | ⏳ PENDING | FastMCP tools, path traversal protection, stdio & streamable-http |
+| T3-07 Server CLI & Entrypoint | ⏳ PENDING | `mkp-server` Typer CLI (`serve/import/remove-book/verify/list-books`) |
+| T3-08 Tests & Contract Validation | ⏳ PENDING | Automated test suite for server, hybrid search, graph, and MCP tools |
 
 ---
 
@@ -31,7 +34,7 @@
 | 0 | PoC & Validation | ✅ Complete |
 | 1 | mkp-builder Core | ✅ Complete |
 | 2 | mkp-builder Complete | ✅ Complete |
-| 3 | mkp-server | ⏳ Ready to start |
+| 3 | mkp-server | ⏳ Ready to execute |
 | 4 | QA & Acceptance | ⬜ Not started |
 
 ---
