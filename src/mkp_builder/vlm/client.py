@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class OllamaClient:
-    """Robust client for interacting with local Ollama instance."""
+    """Robust client for interacting with local Ollama instance with auto-fallback."""
 
     def __init__(
         self,
@@ -34,6 +34,7 @@ class OllamaClient:
         self.max_retries = max_retries
         self.ollama_bin_path = ollama_bin_path
         self.models_dir = models_dir
+        self._available_models: set[str] | None = None
 
     def is_alive(self) -> bool:
         try:
@@ -41,6 +42,55 @@ class OllamaClient:
             return r.status_code == 200
         except Exception:
             return False
+
+    def list_models(self, refresh: bool = False) -> set[str]:
+        """Fetch set of installed model names from Ollama."""
+        if self._available_models is not None and not refresh:
+            return self._available_models
+
+        try:
+            resp = requests.get(f"{self.host}/api/tags", timeout=5.0)
+            if resp.status_code == 200:
+                data = resp.json()
+                models = {m.get("name") for m in data.get("models", []) if m.get("name")}
+                # Also add base names without :latest if present
+                expanded = set(models)
+                for m in models:
+                    if ":" in m:
+                        expanded.add(m.split(":")[0])
+                self._available_models = expanded
+                return self._available_models
+        except Exception as e:
+            logger.debug("Failed to list Ollama models: %s", e)
+
+        return set()
+
+    def _resolve_model(self, requested_model: str) -> str:
+        """Resolve requested model name, falling back to vlm_model if text_model is missing."""
+        available = self.list_models()
+        if not available:
+            return requested_model
+
+        if requested_model in available:
+            return requested_model
+
+        # Fallback to vlm_model if available
+        if self.vlm_model in available or self.vlm_model.split(":")[0] in available:
+            logger.info(
+                "Model '%s' not found in Ollama. Automatically falling back to '%s'.",
+                requested_model,
+                self.vlm_model,
+            )
+            return self.vlm_model
+
+        # Fallback to first available model
+        first_model = next(iter(available))
+        logger.info(
+            "Model '%s' not found in Ollama. Falling back to installed model '%s'.",
+            requested_model,
+            first_model,
+        )
+        return first_model
 
     def ensure_server(self) -> bool:
         """Check if server is running, or attempt to start it if binary exists."""
@@ -63,6 +113,7 @@ class OllamaClient:
                 time.sleep(0.5)
                 if self.is_alive():
                     logger.info("Ollama server successfully started and responsive.")
+                    self.list_models(refresh=True)
                     return True
 
         logger.warning("Ollama server is not reachable at %s", self.host)
@@ -77,8 +128,10 @@ class OllamaClient:
         num_predict: int = 512,
         temperature: float = 0.1,
     ) -> str:
-        """Call Ollama /api/generate with retry and timeout."""
-        target_model = model or (self.vlm_model if image_bytes else self.text_model)
+        """Call Ollama /api/generate with retry, fallback, and timeout."""
+        initial_target = model or (self.vlm_model if image_bytes else self.text_model)
+        target_model = self._resolve_model(initial_target)
+
         url = f"{self.host}/api/generate"
 
         payload: dict[str, Any] = {
@@ -102,6 +155,13 @@ class OllamaClient:
         for attempt in range(1, self.max_retries + 2):
             try:
                 resp = requests.post(url, json=payload, timeout=self.timeout)
+                if resp.status_code == 404 and target_model != self.vlm_model:
+                    # Model not found on server -> try falling back to vlm_model
+                    logger.warning("Model '%s' returned 404, falling back to '%s'", target_model, self.vlm_model)
+                    target_model = self.vlm_model
+                    payload["model"] = target_model
+                    resp = requests.post(url, json=payload, timeout=self.timeout)
+
                 resp.raise_for_status()
                 data = resp.json()
                 return data.get("response", "")
