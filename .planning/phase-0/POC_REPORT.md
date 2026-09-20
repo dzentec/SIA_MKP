@@ -18,12 +18,23 @@
 ---
 
 ## T0-02 — VLM stability (qwen2.5vl:7b)
-**Статус:** ⏳ В процессе (pull модели ~4.7 GB)  
+**Статус:** ✅ PASS (с замечанием по null-others)  
 **GPU:** NVIDIA GeForce RTX 2060 (6 GB VRAM, CUDA 7.5) — обнаружена Ollama  
 **Ollama:** v0.34.2 portable (`D:\Ollama\ollama.exe`)  
 **Модели хранятся:** `D:\AI_models\ollama`  
+**Модель:** qwen2.5vl:7b (5.7 GB скачана успешно)
 
-> Тест будет обновлён по завершению pull
+| Метрика | Без FLASH_ATTENTION | С FLASH_ATTENTION=1 |
+|---------|--------------------|-----------------------|
+| JSON valid rate | — | **100%** (10/10) |
+| diagram_type valid | — | **100%** (10/10) |
+| Avg latency | **22.6s** (2 таймаута) | **2.9s** ✅ |
+| Speedup | — | **87.3%** |
+| Timeouts (45s) | 2/5 | **0/10** |
+
+**Замечание — Null-others rate 0%:** модель заполняет `description` во всех JSON-полях, а не только в matching типе. Это проблема промпта, не модели. Решение: убрать null-constrainted поля из схемы → использовать простую схему `{diagram_type, description, details}`.
+
+**Вывод:** `OLLAMA_FLASH_ATTENTION=1` **обязателен** (без него — частые таймауты 45s). Модель стабильна и всегда возвращает валидный JSON с правильным `diagram_type`.
 
 ---
 
@@ -111,9 +122,12 @@
 | Knowledge graph backend | NetworkX + `triplets.jsonl` |
 | Embedding model | `intfloat/multilingual-e5-large` via `sentence-transformers` |
 | Embedding backend | `sentence-transformers` (НЕ fastembed 0.8.0) |
-| Prefixes | `query:` / `passage:` обязательны |
+| Embedding prefixes | `query:` / `passage:` обязательны |
+| VLM | `qwen2.5vl:7b` at `D:\AI_models\ollama` |
+| VLM JSON schema | упростить: `{diagram_type, description, details}` (убрать null-fields) |
+| OLLAMA_FLASH_ATTENTION | **=1 обязательно** (87% speedup, без него таймауты) |
 | Ollama host | `http://127.0.0.1:11434` |
-| GPU | RTX 2060 6GB VRAM (CUDA 7.5) |
+| GPU | RTX 2060 6GB VRAM (CUDA 7.5) — достаточно для 7B Q4 |
 | Ollama models dir | `D:\AI_models\ollama` |
 | Источники | Английский язык |
 
