@@ -101,24 +101,29 @@ def test_builder_pipeline_fast(tmp_path: Path):
         headless=True,
     )
 
-    # Fast test with skip_vlm=True to test parsing + chunking + export end-to-end
-    out_dir = pipeline.build_book(
+    # Fast test with skip_vlm=True & skip_triplets=True to test parsing + chunking + export end-to-end
+    zip_path = pipeline.build_book(
         book_path=epub_file,
         book_id="test_dedekam",
         profile="digital",
         lang="en",
         skip_vlm=True,
+        skip_triplets=True,
     )
 
-    assert out_dir.exists()
-    assert (out_dir / "chunks.jsonl").exists()
-    assert (out_dir / "pages.jsonl").exists()
-    assert (out_dir / "book_metadata.json").exists()
-    assert (out_dir / "ingest_report.md").exists()
-    assert (out_dir / "assets").is_dir()
+    assert zip_path.exists()
+    assert zip_path.name == "test_dedekam.bookpack.zip"
+
+    book_dir = tmp_path / "work" / "books" / "test_dedekam"
+    assert book_dir.exists()
+    assert (book_dir / "chunks.jsonl").exists()
+    assert (book_dir / "pages.jsonl").exists()
+    assert (book_dir / "book_metadata.json").exists()
+    assert (book_dir / "ingest_report.md").exists()
+    assert (book_dir / "assets").is_dir()
 
     # Read chunks
-    with open(out_dir / "chunks.jsonl", "r", encoding="utf-8") as f:
+    with open(book_dir / "chunks.jsonl", "r", encoding="utf-8") as f:
         chunk_lines = [json.loads(line) for line in f]
     assert len(chunk_lines) > 0
     assert chunk_lines[0]["book_id"] == "test_dedekam"

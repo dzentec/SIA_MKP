@@ -8,24 +8,19 @@
 
 ## Active Phase
 
-**Phase 1 — mkp-builder Core Pipeline**
+**Phase 2 — mkp-builder Complete (Triplets & Export)**
 
-**Plan:** `.planning/phase-1/PLAN.md`  
-**Status:** ✅ **COMPLETE (10/10 Tasks)**
+**Plan:** `.planning/phase-2/PLAN.md`  
+**Status:** ✅ **COMPLETE (5/5 Tasks)**
 
-**Phase 1 Tasks:**
+**Phase 2 Tasks:**
 | Task | Status | Description |
 |------|--------|-------------|
-| T1-01 pyproject & models | ✅ PASS | `pyproject.toml`, `mkp-common` Pydantic models (Schema v1.5) |
-| T1-02 location_ref & cache | ✅ PASS | `LocationRef`, SHA-256 cache, rotating logger |
-| T1-03 document parsers | ✅ PASS | Docling PDF + EPUB (ebooklib+zipfile) + DOCX parsers |
-| T1-04 OCR routing | ✅ PASS | digital / scanned / mixed routing + RapidOCR/Tesseract |
-| T1-05 VLM annotation | ✅ PASS | Ollama qwen2.5vl:7b Prompt 2.0 (discriminated union) |
-| T1-06 3-stage verification | ✅ PASS | Schema + Text LLM + Visual Critic + QA queue |
-| T1-07 chunking engine | ✅ PASS | section/table-aware chunking (max_tokens=512, overlap=64) |
-| T1-08 orchestrator pipeline | ✅ PASS | builder pipeline coordinator (`build_book`) |
-| T1-09 Rich TUI & CLI | ✅ PASS | 7 progress bars, CLI `mkp-builder build`, headless mode |
-| T1-10 E2E integration test | ✅ PASS | 8 automated tests in `tests/` pass (100%) |
+| T2-01 Triplet Extraction | ✅ PASS | GraphRAG extractor, normalization, deduplication |
+| T2-02 Bookpack Exporter | ✅ PASS | `.bookpack.zip` packager, `files_sha256` manifest |
+| T2-03 Pipeline & CLI export | ✅ PASS | `mkp-builder export`, TUI triplet progress |
+| T2-04 Golden Dataset | ✅ PASS | 30 stratified benchmark questions (`qa/golden_dataset.json`) |
+| T2-05 Verification & Tests | ✅ PASS | 13 automated tests pass (100%) |
 
 ---
 
@@ -35,8 +30,8 @@
 |-------|------|--------|
 | 0 | PoC & Validation | ✅ Complete |
 | 1 | mkp-builder Core | ✅ Complete |
-| 2 | mkp-builder Complete | ⏳ Ready to start |
-| 3 | mkp-server | ⬜ Not started |
+| 2 | mkp-builder Complete | ✅ Complete |
+| 3 | mkp-server | ⏳ Ready to start |
 | 4 | QA & Acceptance | ⬜ Not started |
 
 ---

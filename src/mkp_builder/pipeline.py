@@ -1,4 +1,4 @@
-"""Core Builder Pipeline Orchestrator (REQ-B01..B05, REQ-B08..B09)."""
+"""Core Builder Pipeline Orchestrator (REQ-B01..B10)."""
 
 from __future__ import annotations
 
@@ -18,13 +18,16 @@ from mkp_common.models import (
     QaReviewItem,
     VisualAsset,
     BookMetadata,
+    TripletRecord,
 )
 from mkp_builder.parsers import get_parser
 from mkp_builder.parsers.base import ParsedDocument
 from mkp_builder.vlm.client import OllamaClient
 from mkp_builder.vlm.annotator import VLMAnnotator
 from mkp_builder.vlm.verifier import VLMVerifier
+from mkp_builder.triplets import TripletExtractor
 from mkp_builder.chunker import SectionAwareChunker
+from mkp_builder.exporter import BookpackExporter, verify_bookpack_archive
 from mkp_builder.tui import BuilderProgressTracker
 
 logger = logging.getLogger("mkp_builder")
@@ -36,6 +39,7 @@ class BuilderPipeline:
     def __init__(
         self,
         work_dir: Path | str = "./work",
+        out_dir: Path | str | None = None,
         ollama_host: str = "http://127.0.0.1:11434",
         vlm_model: str = "qwen2.5vl:7b",
         text_model: str = "qwen2.5:7b",
@@ -46,6 +50,8 @@ class BuilderPipeline:
     ):
         self.work_dir = Path(work_dir)
         self.work_dir.mkdir(parents=True, exist_ok=True)
+        self.out_dir = Path(out_dir) if out_dir else self.work_dir / "out"
+        self.out_dir.mkdir(parents=True, exist_ok=True)
         self.force = force
         self.headless = headless
 
@@ -72,7 +78,13 @@ class BuilderPipeline:
             text_model=text_model,
             vlm_model=vlm_model,
         )
+        self.triplet_extractor = TripletExtractor(
+            client=self.ollama,
+            cache=self.cache,
+            model=text_model,
+        )
         self.chunker = SectionAwareChunker(max_tokens=max_tokens, overlap=overlap)
+        self.exporter = BookpackExporter()
         self.tui = BuilderProgressTracker(headless=headless)
 
     def build_book(
@@ -85,6 +97,7 @@ class BuilderPipeline:
         ocr_engine: Literal["rapidocr", "tesseract"] = "rapidocr",
         tessdata_path: str | None = None,
         skip_vlm: bool = False,
+        skip_triplets: bool = False,
     ) -> Path:
         start_time = time.time()
         book_path = Path(book_path)
@@ -101,7 +114,8 @@ class BuilderPipeline:
         self.tui.add_stage("parse", "1. Parsing Layout & Figures", total=100)
         self.tui.add_stage("vlm", "2. VLM Annotation & Verification", total=100)
         self.tui.add_stage("chunk", "3. Section-Aware Chunking", total=100)
-        self.tui.add_stage("export", "4. Generating JSONL & Reports", total=100)
+        self.tui.add_stage("triplets", "4. Triplet Extraction (GraphRAG)", total=100)
+        self.tui.add_stage("export", "5. Packaging .bookpack.zip Archive", total=100)
 
         # 1. Parse Document
         parser = get_parser(
@@ -127,7 +141,7 @@ class BuilderPipeline:
         visual_assets_by_page: dict[int, list[VisualAsset]] = defaultdict(list)
         qa_review_items: list[QaReviewItem] = []
 
-        if not skip_vlm and all_figures:
+        if (not skip_vlm or not skip_triplets) and (all_figures or doc.pages):
             self.ollama.ensure_server()
 
         for idx, fig in enumerate(all_figures, start=1):
@@ -177,7 +191,26 @@ class BuilderPipeline:
         self.tui.stats["chunks"] = len(chunks)
         self.tui.update_stage("chunk", completed=100)
 
-        # 4. Generate Pages records & Write output files
+        # 4. Triplet Extraction
+        triplets: list[TripletRecord] = []
+        if not skip_triplets:
+            self.tui.update_stage("triplets", completed=0, total=len(chunks))
+            for c_idx, c in enumerate(chunks, start=1):
+                c_triplets = self.triplet_extractor.extract_from_text(
+                    text=c.text_content,
+                    chunk_id=c.chunk_id,
+                    book_id=actual_book_id,
+                    page_number=c.page_number,
+                    location_ref=c.location_ref,
+                )
+                triplets.extend(c_triplets)
+                self.tui.update_stage("triplets", completed=c_idx)
+        else:
+            self.tui.update_stage("triplets", completed=100)
+
+        self.tui.stats["triplets"] = len(triplets)
+
+        # 5. Write local jsonl / metadata files
         self.tui.update_stage("export", completed=20)
         
         # Write chunks.jsonl
@@ -211,6 +244,12 @@ class BuilderPipeline:
                 )
                 f.write(json.dumps(page_rec.model_dump(by_alias=True), ensure_ascii=False) + "\n")
 
+        # Write triplets.jsonl
+        triplets_file = book_out_dir / "triplets.jsonl"
+        with open(triplets_file, "w", encoding="utf-8") as f:
+            for t in triplets:
+                f.write(json.dumps(t.model_dump(), ensure_ascii=False) + "\n")
+
         # Write qa_review_queue.jsonl
         qa_file = book_out_dir / "qa_review_queue.jsonl"
         with open(qa_file, "w", encoding="utf-8") as f:
@@ -235,7 +274,28 @@ class BuilderPipeline:
         with open(meta_file, "w", encoding="utf-8") as f:
             f.write(json.dumps(meta.model_dump(), ensure_ascii=False, indent=2))
 
-        # Write ingest_report.md
+        # 6. Export .bookpack.zip archive
+        self.tui.update_stage("export", completed=60)
+        zip_path = self.exporter.export_archive(
+            book_dir=book_out_dir,
+            out_dir=self.out_dir,
+            book_id=actual_book_id,
+            title=doc.title,
+            lang=[lang],
+            pipeline_profile=profile,
+            pagination=doc.pagination,
+        )
+        self.tui.stats["archive_path"] = str(zip_path)
+
+        # Validate archive integrity
+        valid, issues = verify_bookpack_archive(zip_path)
+        if not valid:
+            self.logger.error("Bookpack archive validation failed: %s", issues)
+            raise RuntimeError(f"Exported bookpack archive integrity check failed: {issues}")
+        else:
+            self.logger.info("Bookpack archive integrity verified successfully (SHA-256 match).")
+
+        # 7. Write ingest_report.md
         duration = time.time() - start_time
         report_file = book_out_dir / "ingest_report.md"
         self._write_ingest_report(
@@ -245,7 +305,9 @@ class BuilderPipeline:
             pages=len(doc.pages),
             figures=len(all_figures),
             chunks=len(chunks),
+            triplets=len(triplets),
             needs_review=len(qa_review_items),
+            archive_path=str(zip_path),
             duration=duration,
         )
 
@@ -254,22 +316,13 @@ class BuilderPipeline:
         self.tui.print_summary(actual_book_id, duration)
 
         self.logger.info(
-            "Build complete for %s in %.2fs. Outputs in %s",
+            "Build complete for %s in %.2fs. Archive: %s",
             actual_book_id,
             duration,
-            book_out_dir,
+            zip_path,
         )
 
-        # Acceptance gate check (REQ-B04: needs_review <= 5%)
-        if all_figures:
-            nr_pct = (len(qa_review_items) / len(all_figures)) * 100.0
-            if nr_pct > 5.0:
-                self.logger.warning(
-                    "QA Acceptance Warning: needs_review rate is %.1f%% (> 5%%)",
-                    nr_pct,
-                )
-
-        return book_out_dir
+        return zip_path
 
     def _write_ingest_report(
         self,
@@ -279,7 +332,9 @@ class BuilderPipeline:
         pages: int,
         figures: int,
         chunks: int,
+        triplets: int,
         needs_review: int,
+        archive_path: str,
         duration: float,
     ) -> None:
         nr_rate = (needs_review / max(figures, 1)) * 100.0
@@ -291,6 +346,7 @@ class BuilderPipeline:
 - **Date:** {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}
 - **Duration:** {duration:.2f} seconds
 - **Acceptance Gate (needs_review ≤ 5%):** {gate_status}
+- **Exported Archive:** `{archive_path}`
 
 ## Summary Metrics
 
@@ -299,16 +355,19 @@ class BuilderPipeline:
 | Pages / Spine Items | {pages} |
 | Extracted Figures | {figures} |
 | Generated Chunks | {chunks} |
+| Extracted Triplets | {triplets} |
 | VLM Needs Review (QA Queue) | {needs_review} ({nr_rate:.1f}%) |
 | VLM Cache Hits | {self.tui.stats['vlm_cache_hits']} |
 | VLM API Calls | {self.tui.stats['vlm_api_calls']} |
 
-## Artifact Files Generated
+## Artifact Files Inside Archive
 
-- `chunks.jsonl`
-- `pages.jsonl`
-- `qa_review_queue.jsonl`
+- `bookpack.json` (schema_version: "1.5", files_sha256 manifest)
 - `book_metadata.json`
+- `pages.jsonl`
+- `chunks.jsonl`
+- `triplets.jsonl`
+- `qa_review_queue.jsonl`
 - `assets/` ({figures} PNG figures)
 """
         with open(report_file, "w", encoding="utf-8") as f:

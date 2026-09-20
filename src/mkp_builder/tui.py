@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
+from pathlib import Path
 from rich.console import Console
 from rich.progress import (
     Progress,
@@ -42,6 +43,8 @@ class BuilderProgressTracker:
             "vlm_api_calls": 0,
             "needs_review": 0,
             "chunks": 0,
+            "triplets": 0,
+            "archive_path": "",
         }
 
     def start(self) -> None:
@@ -81,6 +84,9 @@ class BuilderProgressTracker:
         nr_style = "red" if self.stats["needs_review"] > 0 else "green"
         table.add_row("Needs Review (QA)", f"[{nr_style}]{self.stats['needs_review']}[/{nr_style}]")
         table.add_row("Generated Chunks", str(self.stats["chunks"]))
+        table.add_row("Extracted Triplets", str(self.stats["triplets"]))
+        if self.stats["archive_path"]:
+            table.add_row("Exported Archive", str(self.stats["archive_path"]))
         table.add_row("Elapsed Time", f"{duration_sec:.1f} s")
 
         self.console.print(Panel(table, expand=False))
