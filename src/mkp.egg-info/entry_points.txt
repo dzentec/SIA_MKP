@@ -1,0 +1,3 @@
+[console_scripts]
+mkp-builder = mkp_builder.cli:main
+mkp-server = mkp_server.cli:main

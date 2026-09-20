@@ -1,0 +1,30 @@
+Metadata-Version: 2.4
+Name: mkp
+Version: 1.5.0
+Summary: Maritime Knowledge Pack — Offline Document-to-RAG and MCP Knowledge Engine
+License: Proprietary
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: pydantic>=2.7.0
+Requires-Dist: rich>=13.7.0
+Requires-Dist: click>=8.1.0
+Requires-Dist: typer>=0.12.0
+Requires-Dist: tqdm>=4.66.0
+Requires-Dist: networkx>=3.2.0
+Provides-Extra: builder
+Requires-Dist: docling>=2.15.0; extra == "builder"
+Requires-Dist: rapidocr-onnxruntime>=1.3.0; extra == "builder"
+Requires-Dist: ebooklib>=0.18; extra == "builder"
+Requires-Dist: python-docx>=1.1.0; extra == "builder"
+Requires-Dist: requests>=2.31.0; extra == "builder"
+Requires-Dist: httpx>=0.27.0; extra == "builder"
+Requires-Dist: pillow>=10.2.0; extra == "builder"
+Requires-Dist: pypdf>=4.0.0; extra == "builder"
+Requires-Dist: pdfplumber>=0.11.0; extra == "builder"
+Provides-Extra: server
+Requires-Dist: lancedb>=0.17.0; extra == "server"
+Requires-Dist: sentence-transformers>=3.0.0; extra == "server"
+Requires-Dist: fastmcp>=2.2.0; extra == "server"
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0.0; extra == "dev"
+Requires-Dist: pytest-asyncio>=0.23.0; extra == "dev"

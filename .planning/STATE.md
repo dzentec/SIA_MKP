@@ -8,24 +8,24 @@
 
 ## Active Phase
 
-**Phase 0 — PoC & Validation**
+**Phase 1 — mkp-builder Core Pipeline**
 
-**Plan:** `.planning/phase-0/PLAN.md`  
-**Report:** `.planning/phase-0/POC_REPORT.md` — заполнен (6/7 задач)  
-**PoC scripts:** `poc/p0_0*.py`
+**Plan:** `.planning/phase-1/PLAN.md`  
+**Status:** ✅ **COMPLETE (10/10 Tasks)**
 
-**PoC Progress:**
-| Task | Status | Key Finding |
+**Phase 1 Tasks:**
+| Task | Status | Description |
 |------|--------|-------------|
-| T0-01 Docling crop | ✅ PASS | 50 crops, `page_range=(s,e)` API |
-| T0-02 VLM qwen2.5vl:7b | ✅ PASS | JSON=100%, type=100%, avg 2.9s с FA |
-| T0-03 LanceDB FTS | ✅ PASS | EN recall=97.5%, default tokenizer |
-| T0-04 e5-large embeddings | ✅ PASS | EN→EN recall=1.000, sentence-transformers |
-| T0-05 OCR comparison | ✅ PASS | RapidOCR via Docling работает |
-| T0-06 LadybugDB/NetworkX | ✅ PASS | LadybugDB нет на Win/Py3.14, NetworkX как v1 |
-| T0-07 EPUB geometry | ✅ PASS | 88 spine items, ebooklib + zipfile workaround |
-
-**Next step:** git commit финальных результатов → открыть Phase 1
+| T1-01 pyproject & models | ✅ PASS | `pyproject.toml`, `mkp-common` Pydantic models (Schema v1.5) |
+| T1-02 location_ref & cache | ✅ PASS | `LocationRef`, SHA-256 cache, rotating logger |
+| T1-03 document parsers | ✅ PASS | Docling PDF + EPUB (ebooklib+zipfile) + DOCX parsers |
+| T1-04 OCR routing | ✅ PASS | digital / scanned / mixed routing + RapidOCR/Tesseract |
+| T1-05 VLM annotation | ✅ PASS | Ollama qwen2.5vl:7b Prompt 2.0 (discriminated union) |
+| T1-06 3-stage verification | ✅ PASS | Schema + Text LLM + Visual Critic + QA queue |
+| T1-07 chunking engine | ✅ PASS | section/table-aware chunking (max_tokens=512, overlap=64) |
+| T1-08 orchestrator pipeline | ✅ PASS | builder pipeline coordinator (`build_book`) |
+| T1-09 Rich TUI & CLI | ✅ PASS | 7 progress bars, CLI `mkp-builder build`, headless mode |
+| T1-10 E2E integration test | ✅ PASS | 8 automated tests in `tests/` pass (100%) |
 
 ---
 
@@ -34,8 +34,8 @@
 | Phase | Name | Status |
 |-------|------|--------|
 | 0 | PoC & Validation | ✅ Complete |
-| 1 | mkp-builder Core | ⏳ Ready to start |
-| 2 | mkp-builder Complete | ⬜ Not started |
+| 1 | mkp-builder Core | ✅ Complete |
+| 2 | mkp-builder Complete | ⏳ Ready to start |
 | 3 | mkp-server | ⬜ Not started |
 | 4 | QA & Acceptance | ⬜ Not started |
 
