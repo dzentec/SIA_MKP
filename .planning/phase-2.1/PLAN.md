@@ -1,6 +1,6 @@
 # Phase 2.1 Plan: mkp-builder — Rules Pipeline & Bookpack v0.2
 
-**Goal:** Реализовать конвейер извлечения утверждений (Claims), их кластеризации, синтеза формализованных правил (Rules), компиляции статических Guardrails, интеграцию предметной онтологии и экспорт артефакта `.bookpack.zip` стандарта v0.2 с 4-уровневой структурой (`base/`, `yacht/` stub, `voyage/` stub, `personal/` stub).
+**Goal:** Реализовать конвейер извлечения утверждений (Claims), их кластеризации, синтеза формализованных правил (Rules), компиляции статических Guardrails, интеграцию предметной онтологии и экспорт артефакта `.bookpack.zip` стандарта v0.2 с 4-уровневой структурой (`base/`, `yacht/` stub, `voyage/` stub, `personal/` stub) и поддержкой интерактивного выбора категории документа в TUI.
 
 ---
 
@@ -21,6 +21,7 @@
 - Создать `src/mkp_builder/extract/claims.py`:
   - Запрос к текстовой модели Qwen2.5:7B (Ollama) с промптом из HLD §9.2.
   - Извлечение атомарных фактов, привязка к онтологии, извлечение точной цитаты (`quote` ≤ 200 симв.).
+  - Пропуск генерации claims для документов `T3: Personal` (только chunks для поиска).
   - Кэширование запросов claims (SHA-256 чанка + model + prompt_ver).
 
 ### Task 2.1-03: Модуль кластеризации утверждений (`cluster.py`)
@@ -39,21 +40,26 @@
   - Фильтрация T1 approved правил severity in (`critical`, `warning`).
   - Форматирование в компактный markdown `compiled_system_prompt.md` / `guardrails.md` объёмом ≤ 8000 символов.
 
-### Task 2.1-06: Экспорт Bookpack v0.2 (`export/bookpack.py`)
+### Task 2.1-06: TUI выбор категории и Экспорт Bookpack v0.2 (`export/bookpack.py` + CLI)
+- Интерактивный выбор в TUI (Rich Prompt):
+  - Выбор категории (`T1: Base`, `T2: Yacht`, `T2.5: Voyage`, `T3: Personal`) при запуске без флага `--tier`.
+  - Запрос региона (`--region`) при выборе `T2.5`.
+- Поддержка CLI флагов: `--tier <T1|T2|T2.5|T3>` и `--region <name>`.
 - Обновить экспортер в `src/mkp_builder/export/bookpack.py`:
+  - Маршрутизация данных книги в соответствующий каталог: `base/`, `yacht/`, `voyage/`, `personal/`.
   - Формирование структуры `base/` (chunks, triplets, claims, rules, guardrails).
-  - Формирование пустых заглушек `yacht/`, `voyage/`, `personal/`.
+  - Формирование пустых заглушек для неактивных уровней.
   - Генерация `manifest.yaml` (v0.2.0) и `checksums.sha256`.
 
 ### Task 2.1-07: CLI для ревью правил и Golden Rules Dataset
 - Создать интерактивный/CLI режим ревью `mkp-builder review-rules`:
-  - Просмотр правил, переход `draft` → `approved`.
+  - Просмотр правил, валидация цитат, перевод `draft` → `approved`.
   - Подготовка начального набора из 15+ верифицированных правил T1.
 
 ### Task 2.1-08: Тесты и валидация пайплайна
 - Создать `tests/test_rules_pipeline.py`:
   - Тест валидации Pydantic схем (Claims, Rules, ManifestV2).
-  - Тест извлечения claims на фикстурах.
+  - Тест извлечения claims и роутинга категорий T1/T2/T2.5/T3.
   - Тест синтеза правил и детекции выдуманных порогов.
   - Тест компилятора guardrails (проверка лимита символов и структуры).
   - Тест экспорта и целостности `.bookpack.zip` v0.2.
@@ -62,7 +68,8 @@
 
 ## 2. Критерии приёмки Phase 2.1
 1. Все схемы строго соответствуют HLD v3.1 §7.1.
-2. `mkp-builder` успешно выполняет сквозной прогон со стадиями `claims` → `cluster` → `synthesize` → `guardrails` → `export`.
-3. Сформированный `.bookpack.zip` v0.2 содержит корректные манифесты и папки `base/`, `yacht/` (stub), `voyage/` (stub), `personal/` (stub).
-4. `guardrails.md` генерируется без ошибок и укладывается в лимит 8000 символов.
-5. Набор тестов `pytest tests/test_rules_pipeline.py` проходит со 100% успехом.
+2. TUI и CLI поддерживают интерактивный выбор и явное указание категории документа (`T1`, `T2`, `T2.5`, `T3`).
+3. `mkp-builder` успешно выполняет сквозной прогон со стадиями `claims` → `cluster` → `synthesize` → `guardrails` → `export`.
+4. Сформированный `.bookpack.zip` v0.2 содержит корректные манифесты и папки `base/`, `yacht/` (stub), `voyage/` (stub), `personal/` (stub).
+5. `guardrails.md` генерируется без ошибок и укладывается в лимит 8000 символов.
+6. Набор тестов `pytest tests/test_rules_pipeline.py` проходит со 100% успехом.

@@ -40,8 +40,10 @@ max_tokens=512, overlap=64. Таблицы — отдельные чанки. `l
 Упаковка артефакта v0.2: `manifest.yaml` (bookpack_version: "0.2.0"), `checksums.sha256`, `base/` (chunks, triplets, claims, rules, graph, guardrails), `yacht/` (stub []), `voyage/` (stub []), `personal/` (stub []), `assets/`.
 **Scope:** v1
 
-#### REQ-B08 — TUI (rich) + логирование
-Прогресс-бары для каждого этапа конвейера со счётчиками, кэш-попаданиями, ETA, `needs_review`-флагом. Файловый лог: `work/logs/builder_<ts>.log`.
+#### REQ-B08 — TUI (rich) + Интерактивный выбор категории + логирование
+- TUI на базе Rich: интерактивный выбор категории документа (`T1: Base`, `T2: Yacht`, `T2.5: Voyage`, `T3: Personal`) и региона (`--region` для T2.5) при запуске без флагов.
+- Прогресс-бары для каждого этапа конвейера со счётчиками, кэш-попаданиями, ETA, `needs_review`-флагом.
+- Файловый лог: `work/logs/builder_<ts>.log`.
 **Scope:** v1
 
 #### REQ-B09 — Идемпотентность и кэширование
@@ -49,7 +51,7 @@ max_tokens=512, overlap=64. Таблицы — отдельные чанки. `l
 **Scope:** v1
 
 #### REQ-B10 — CLI
-`mkp-builder build --book <файл> --profile <digital|scanned|mixed> --lang <ru|en|mixed> --out <папка> [--force] [--headless]`  
+`mkp-builder build --book <файл> [--tier <T1|T2|T2.5|T3>] [--region <name>] --profile <digital|scanned|mixed> --lang <ru|en|mixed> --out <папка> [--force] [--headless]`  
 `mkp-builder export --book-id <id> --out <папка>`
 **Scope:** v1
 
@@ -62,7 +64,7 @@ YAML-онтология (`sia_ontology.yaml`, `sia_relations.yaml`, `mapping.yam
 **Scope:** v1 (Phase 2.1)
 
 #### REQ-R02 — Извлечение атомарных утверждений (Claims Extraction)
-Модуль `claims.py`: извлечение `Claim` из чанков текста через Qwen2.5-7B с валидацией схемы, онтологическим маппингом (`mapped=True/False`), уверенностью (`confidence`), привязкой точной цитаты `quote` (≤200 симв.), `doc_id`, `page`, `chunk_id`.
+Модуль `claims.py`: извлечение `Claim` из чанков текста через Qwen2.5-7B с валидацией схемы, онтологическим маппингом (`mapped=True/False`), уверенностью (`confidence`), привязкой точной цитаты `quote` (≤200 симв.), `doc_id`, `page`, `chunk_id`. Для документов `T3` генерация claims пропускается.
 **Scope:** v1 (Phase 2.1)
 
 #### REQ-R03 — Кластеризация утверждений (Claims Clustering)
