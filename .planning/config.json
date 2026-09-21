@@ -3,7 +3,8 @@
   "granularity": "feature",
   "parallelization": true,
   "language": "ru",
-  "project_code": "MKP",
+  "project_code": "MKP-R",
   "runtime": "antigravity",
-  "created_at": "2026-09-20T02:54:00+03:00"
+  "created_at": "2026-09-20T02:54:00+03:00",
+  "updated_at": "2026-09-21T21:11:00+03:00"
 }

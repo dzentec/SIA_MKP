@@ -1,78 +1,60 @@
-# STATE — MKP Project
+# STATE — MKP-R Project
 
-**Updated:** 2026-09-20  
-**Current Phase:** 0 (PoC & Validation) — **✅ COMPLETE (7/7 PASS)**  
-**Overall Status:** Phase 0 завершена. Готовы к Phase 1.
+**Updated:** 2026-09-21  
+**Current Phase:** 2.1 (mkp-builder — Rules Pipeline & Bookpack v0.2)  
+**Overall Status:** Phase 0, 1, 2 завершены. HLD v3.1 интегрирован в проект. Создан план Phase 2.1.
 
 ---
 
 ## Active Phase
 
-**Phase 3 — mkp-server (Database, Indexing & FastMCP Server)**
+**Phase 2.1 — mkp-builder (Rules Pipeline & Bookpack v0.2 Export)**
 
-**Plan:** `.planning/phase-3/PLAN.md`  
+**Plan:** `.planning/phase-2.1/PLAN.md`  
 **Status:** ⏳ **READY TO EXECUTE (0/8 Tasks)**
 
-**Phase 3 Tasks:**
+**Phase 2.1 Tasks:**
 | Task | Status | Description |
 |------|--------|-------------|
-| T3-01 Base Registry & Structure | ⏳ PENDING | Canonical directory layout, `base.json`, rotating server logger |
-| T3-02 Ingestion, Merge & Verify | ⏳ PENDING | `.bookpack.zip` ingestion, `pack/` merger, `remove-book`, `verify` |
-| T3-03 LanceDB Hybrid Search | ⏳ PENDING | `multilingual-e5-large` embedder (`passage:`/`query:`), FTS, RRFReranker |
-| T3-04 Knowledge Graph Engine | ⏳ PENDING | NetworkX GraphRAG, multi-hop entity traversal, provenance |
-| T3-05 Blue-Green Lifecycle | ⏳ PENDING | Build in `derived_new/`, smoke test, atomic swap & in-memory hot reload |
-| T3-06 FastMCP Server & 5 Tools | ⏳ PENDING | FastMCP tools, path traversal protection, stdio & streamable-http |
-| T3-07 Server CLI & Entrypoint | ⏳ PENDING | `mkp-server` Typer CLI (`serve/import/remove-book/verify/list-books`) |
-| T3-08 Tests & Contract Validation | ⏳ PENDING | Automated test suite for server, hybrid search, graph, and MCP tools |
+| T2.1-01 Ontology & Pydantic Schemas | ⏳ PENDING | `ontology/` YAML + `rules_schema.py` (Claim, Cluster, Rule, ManifestV2) |
+| T2.1-02 Claims Extraction Module | ⏳ PENDING | `extract/claims.py` с Qwen2.5:7b, привязкой к онтологии и цитатам |
+| T2.1-03 Claims Clustering Module | ⏳ PENDING | `synthesize/cluster.py` группировка по архетипам/доменам/сигналам |
+| T2.1-04 Rule Synthesis Module | ⏳ PENDING | `synthesize/synthesize.py` синтез правил + валидация порогов триггеров |
+| T2.1-05 Guardrails Compiler | ⏳ PENDING | `compile/guardrails.py` генерация `guardrails.md` (≤ 8000 символов) |
+| T2.1-06 Bookpack v0.2 Export | ⏳ PENDING | `export/bookpack.py` 4-уровневая структура (`base/`, `yacht/`, `voyage/`, `personal/`) |
+| T2.1-07 Rule Review CLI & Dataset | ⏳ PENDING | CLI режим ревью + 15+ эталонных правил T1 |
+| T2.1-08 Tests & Pipeline Validation | ⏳ PENDING | Автотесты схем, пайплайна правил, компилятора и экспорта |
 
 ---
 
-## Phase Status
+## Phase Status Overview
 
 | Phase | Name | Status |
 |-------|------|--------|
-| 0 | PoC & Validation | ✅ Complete |
+| 0 | PoC & Validation | ✅ Complete (7/7 PASS) |
 | 1 | mkp-builder Core | ✅ Complete |
-| 2 | mkp-builder Complete | ✅ Complete |
-| 3 | mkp-server | ⏳ Ready to execute |
-| 4 | QA & Acceptance | ⬜ Not started |
+| 2 | mkp-builder Complete (Base Export) | ✅ Complete |
+| 2.1 | mkp-builder Rules & Bookpack v0.2 | ⏳ Ready to execute |
+| 3 | mkp-server (9 MCP Tools) | ⬜ Planned |
+| 4 | QA & Acceptance | ⬜ Planned |
 
 ---
 
-## Key Decisions (обновлено по результатам Phase 0)
+## Key Decisions (HLD v3.1 + PoC)
 
 | Decision | Value | Source |
 |----------|-------|--------|
-| Schema version | 1.5 | HLD v1.5 |
-| Источники | **Английский язык** | User decision 2026-09-20 |
+| HLD Architecture | **HLD MKP-R v3.1** | `.init_doc/HLD_MKP-R_v3.1_*.md` |
+| Bookpack format | **v0.2.0** (`manifest.yaml`, 4-tier folders) | HLD v3.1 §7.3 |
+| Content Tiers | T1: Base (MVP), T2: Yacht (Stub), T2.5: Voyage (Stub), T3: Personal (Stub) | HLD v3.1 §4 |
+| MCP Tools set | **9 tools** (4 documents/ + 5 rules/) | HLD v3.1 §8 |
+| Rule validation | Строгая проверка порогов триггеров по цитатам claims | HLD v3.1 §9.3 |
+| Guardrails limit | ≤ 8000 символов, только T1 approved | HLD v3.1 §8.4 |
 | Embedding model | intfloat/multilingual-e5-large, dim=1024 | HLD §7.1 |
-| Embedding backend | **sentence-transformers** (НЕ fastembed) | PoC T0-04 |
+| Embedding backend | **sentence-transformers** | PoC T0-04 |
 | Embedding prefixes | `query:` / `passage:` обязательны | PoC T0-04 |
-| VLM model | qwen2.5vl:7b Q4_K_M | HLD §3 |
+| VLM model | qwen2.5vl:7b Q4_K_M (OLLAMA_FLASH_ATTENTION=1) | PoC T0-02 |
 | Text model | qwen2.5:7b | HLD §4.5 |
-| Ollama | v0.34.2 portable, D:\Ollama\ | PoC T0-02 |
-| Ollama models dir | D:\AI_models\ollama | User decision |
-| OLLAMA_FLASH_ATTENTION | **=1 обязательно** (87% speedup, 2.9s avg, без него таймауты 45s) | PoC T0-02 |
-| VLM JSON schema | упростить: `{diagram_type, description, details}` | PoC T0-02 |
 | Vector DB | LanceDB ≥ 0.38 | HLD §7.2 |
-| FTS tokenizer | **default** (EN corpus) | PoC T0-03 |
-| Graph DB | **NetworkX + triplets.jsonl** (LadybugDB нет на Win/Py3.14) | PoC T0-06 |
-| OCR engine (Docling) | **RapidOcrOptions()** | PoC T0-05 |
-| OCR engine (standalone) | Tesseract 5.4, D:\Tesseract\ | PoC T0-05 |
-| Python version | **3.14.4** | User decision |
-| EPUB parsing | ebooklib (spine) + zipfile (images), Docling EPUB bug | PoC T0-07 |
-
----
-
-## Open Questions — ЗАКРЫТЫ по результатам Phase 0
-
-- [x] Версия LadybugDB → NetworkX v1, LadybugDB при доступности
-- [x] OCR-движок → RapidOcrOptions() в Docling
-- [x] FTS-токенизатор → default (английский корпус)
-- [x] GPU VRAM → RTX 2060 6GB VRAM доступна (достаточно для 7B Q4)
-- [x] VLM стабильность → 100% JSON, FLASH_ATTENTION обязателен
-- [x] Язык источников → Английский
-
-## Open Questions — Новые
-
-- [ ] Нужна ли поддержка кириллических запросов к английским документам?
+| Graph Engine | **NetworkX + triplets.jsonl** | PoC T0-06 |
+| Python version | **3.14.4** | Project setup |
