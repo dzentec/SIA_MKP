@@ -86,7 +86,7 @@
 | **Криптография** | Pure Python Ed25519 | RFC 8032 | Цифровая подпись пакетов (0 native deps, 100% offline) |
 | **VLM (Vision-LLM)** | Qwen2.5-VL | `qwen2.5vl:7b Q4_K_M` via Ollama | Распознавание и структурирование морских схем |
 | **Текстовая LLM** | Qwen2.5 | `qwen2.5:7b Q4_K_M` via Ollama | Извлечение триплетов, claims и синтез правил |
-| **Embeddings** | Sentence-Transformers | `intfloat/multilingual-e5-large` (1024-dim) | Плотные векторные представления (`passage:` / `query:`) |
+| **Embeddings** | FastEmbed / Sentence-Transformers | `intfloat/multilingual-e5-large` (1024-dim) | Плотные векторные представления (`passage:` / `query:`) |
 | **Vector DB** | LanceDB | `≥ 0.38` | Гибридный векторный и полнотекстовый поиск (FTS) |
 | **Graph Engine** | NetworkX | `latest` | Граф знаний сущностей, морских терминов и связей |
 | **MCP Server** | FastMCP | `≥ 2.2` (pinned) | Обслуживание бортового ИИ-советника |
@@ -182,33 +182,44 @@ mkp-builder review-rules --rules "work/demo/books/dedekam_seamanship/rules.jsonl
 ### 4. Запуск MCP-сервера (`mkp-server`)
 
 ```bash
-# Импорт подписанного пакета v0.3.0 в хранилище /storage/
-mkp-server import "work/demo/out/dedekam_seamanship.bookpack.zip" \
-  --storage "C:\marine_storage"
+# Просмотр сводного дашборда состояния хранилища
+mkp-server info --storage "./storage"
 
-# Запуск MCP-сервера по протоколу stdio (для Claude Desktop / Open WebUI)
-mkp-server serve --storage "C:\marine_storage"
+# Импорт подписанного пакета v0.3.0 в хранилище через WAL
+mkp-server import "path/to/book.bookpack.zip" --storage "./storage"
+
+# Запуск MCP-сервера по протоколу stdio (для Claude Desktop / Open WebUI / СИА)
+mkp-server serve --storage "./storage" --transport stdio
+
+# Запуск MCP-сервера по протоколу HTTP/SSE
+mkp-server serve --storage "./storage" --transport http --port 8000
 
 # Откат к резервной копии (при необходимости)
-mkp-server rollback --storage "C:\marine_storage" --mode auto
+mkp-server rollback --storage "./storage" --mode auto
 ```
 
 ---
 
-## 🧪 Тестирование
+## 🧪 Тестирование и бенчмарки
 
 ```bash
-# Запуск всех 22 тестов проекта
+# Запуск всех 40 автоматизированных тестов проекта
 pytest tests/ -v
+
+# Запуск приемочного бенчмарка (Acceptance Suite)
+python qa/run_acceptance.py
+
+# Сквозная интерактивная демонстрация 10 MCP-инструментов
+python qa/demo_e2e.py
 ```
 
-### Структура тестов:
-- `tests/test_parsers.py` — Проверка парсинга PDF, EPUB, DOCX и кропа схем.
-- `tests/test_builder.py` — Проверка чанкера, верификатора и сквозного конвейера.
-- `tests/test_triplets.py` — Извлечение графовых триплетов и нормализация.
-- `tests/test_rules_pipeline.py` — Валидация Claims, онтологии, синтеза правил, Guardrails, per-artifact sha256 и подписи Ed25519.
-- `tests/test_golden_dataset.py` — Валидация точности на 30 эталонных вопросах и 15+ Golden Rules.
-- `tests/test_export.py` — Тестирование целостности архивов и детекции повреждений.
+### Сводка результатов приемочного тестирования (Phase 4):
+- **Hallucination Rate:** `0.0%` (✅ PASS)
+- **Citation Rate:** `100.0%` (✅ PASS)
+- **Search Recall @ 3:** `100.0%` (✅ PASS)
+- **Knowledge Graph Accuracy:** `100.0%` (✅ PASS)
+- **Static Guardrails Size:** `340 chars` (≤ 8000 limit, ✅ PASS)
+- **Инварианты надежности (I0–I14):** `15/15 PASS` (100% стресс-тестов WAL, отката и сбоя питания).
 
 ---
 
@@ -221,13 +232,19 @@ Doc2Rag/
 │   ├── phase-1/             # Планы базового конвейера
 │   ├── phase-2/             # Планы триплетов и экспорта
 │   ├── phase-2.1/           # План конвейера правил и Bookpack v0.3
-│   └── phase-3/             # План MCP-сервера (хранилище, WAL, 10 инструментов)
+│   ├── phase-3/             # План MCP-сервера (хранилище, WAL, 10 инструментов)
+│   ├── phase-4/             # Приемочный отчет (ACCEPTANCE.md, UAT.md)
+│   └── phase-5/             # План расширенного тестирования (Full Evaluation Spec v1.1)
 ├── ontology/                # Англоязычная онтология предметной области (YAML)
 │   ├── sia_ontology.yaml    # Домены, архетипы, телеметрия, действия, аварии
 │   ├── sia_relations.yaml   # Предикаты и отношения
 │   └── mapping.yaml         # Двуязычный словарь синонимов (EN & RU)
-├── qa/
-│   └── golden_dataset.json  # 30 стратифицированных вопросов и эталонные правила
+├── qa/                      # Модули QA, бенчмарков и датасеты
+│   ├── golden_dataset.json  # 30 стратифицированных вопросов
+│   ├── golden_rules.json    # 15 верифицированных правил T1 с точными цитатами
+│   ├── run_acceptance.py    # Автоматический запуск приемочных тестов
+│   ├── acceptance_report.md # Отчет приемочного бенчмарка
+│   └── demo_e2e.py          # Сквозной тест 10 MCP-инструментов
 ├── src/
 │   ├── mkp_common/          # Pydantic-схемы (Claims, Rules, ManifestV3), LocationRef, логгер
 │   ├── mkp_builder/         # Конвейер сборщика (парсинг, OCR, VLM, claims, synthesize, guardrails, export)
@@ -235,8 +252,8 @@ Doc2Rag/
 │   │   ├── synthesize/      # Кластеризация и синтез правил
 │   │   ├── compile/         # Компиляция статических Guardrails
 │   │   └── export/          # Подписание Ed25519 и упаковка Bookpack v0.3.0
-│   └── mkp_server/          # MCP-сервер (хранилище, WAL, LanceDB, NetworkX, 10 MCP tools)
-├── tests/                   # Набор тестов pytest (22 теста)
+│   └── mkp_server/          # FastMCP сервер (хранилище, WAL, LanceDB, NetworkX, 10 MCP tools)
+├── tests/                   # Набор тестов pytest (40 тестов)
 ├── poc/                     # Скрипты PoC валидации и утилиты запуска
 └── pyproject.toml           # Конфигурация проекта, CLI entrypoints и зависимости
 ```
@@ -249,5 +266,6 @@ Doc2Rag/
 * ✅ **Phase 1:** `mkp-builder` Core (Парсинг + VLM + Верификация + Чанкинг).
 * ✅ **Phase 2:** `mkp-builder` Complete (Триплеты + Экспорт базового архива).
 * ✅ **Phase 2.1:** `mkp-builder` Rules Pipeline & Signed Bookpack v0.3.0 (8/8 задач PASS, 100% тестов).
-* ⏳ **Phase 3:** `mkp-server` 4-Tier Storage, WAL/Rollback (I0–I14) & 10 FastMCP Tools.
-* ⬜ **Phase 4:** QA & Acceptance (Сквозной прогон Golden Dataset + 15 эталонных правил).
+* ✅ **Phase 3:** `mkp-server` 4-Tier Storage, WAL/Rollback (I0–I14) & 10 FastMCP Tools (8/8 задач PASS).
+* ✅ **Phase 4:** QA & Acceptance (100% PASS, 0% Hallucinations, 15/15 Инвариантов, `acceptance_report.md`).
+* ⏳ **Phase 5:** Full Evaluation & Quality Benchmark (Spec v1.1, 95–110 вопросов, Offline MCP Agent, Gemini LLM-as-a-Judge).

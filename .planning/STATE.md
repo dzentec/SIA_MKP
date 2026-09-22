@@ -1,24 +1,24 @@
 # STATE — MKP-R Project
 
-**Updated:** 2026-09-22  
-**Current Phase:** Complete (All Phases 0–4 Finished)  
-**Overall Status:** Phase 0, 1, 2, 2.1, 3, 4 полностью завершены (100% тестов PASS — 39/39 тестов). Все требования HLD v3.3.1 (Инварианты I0–I14) и спецификации QA/Acceptance (REQ-QA-01, REQ-QA-02, REQ-S01..S13) выполнены и верифицированы.
+**Updated:** 2026-09-23  
+**Current Phase:** Phase 5 — Full Evaluation & Quality Benchmark (Planning Ready)  
+**Overall Status:** Фазы 0–4 завершены (100% тестов PASS — 40/40). Сформирован и утвержден детальный план Phase 5 по спецификации MKP-R Full Evaluation Spec v1.1.
 
 ---
 
-## Completed Phase: Phase 4 — QA & Acceptance (Golden Datasets, Benchmark & Invariants Stress Tests)
+## Current Phase: Phase 5 — Full Evaluation & Quality Benchmark
+**Plan:** `.planning/phase-5/PLAN.md`  
+**Spec:** `.init_doc/MKP-R Full Evaluation Spec v1.1_1of2.md`, `.init_doc/MKP-R Full Evaluation Spec v1.1_2of2.md`  
+**Status:** ⏳ **READY TO EXECUTE (5 Tasks Planned)**
 
-**Plan:** `.planning/phase-4/PLAN.md`  
-**Status:** ✅ **COMPLETE (4/4 Tasks PASS)**
-**Report:** `qa/acceptance_report.md`
-
-**Phase 4 Tasks Execution Summary:**
+**Phase 5 Planned Tasks:**
 | Task | Status | Description |
 |------|--------|-------------|
-| T4-01 Golden Datasets & Reference Rules | ✅ DONE | `qa/golden_rules.json` (15 верифицированных T1 правил с цитатами), `qa/golden_dataset.json` (30 стратифицированных мультиязычных вопросов по 6 типам диаграмм и 2 книгам Dedekam), `tests/test_golden_dataset.py` |
-| T4-02 Acceptance Benchmarking Suite | ✅ DONE | `qa/metrics.py`, `qa/evaluator.py`, `qa/corpus_fixture.py`: расчет Hallucination rate (0.0%), Rule recall (87.5%), Citation rate (100.0%), Search recall @ 3/5 (100.0%), Triplets accuracy (100.0%), Guardrails size (340 chars <= 8000) |
-| T4-03 Invariants Stress & Chaos Testing | ✅ DONE | `tests/test_qa_invariants_stress.py`: power loss injection на 11 шагах WAL, recovery поврежденного бэкапа (3 опции I5), update storm (5 последовательных обновлений), path traversal fuzzing |
-| T4-04 Automated Acceptance Runner & Report | ✅ DONE | `qa/run_acceptance.py`: запуск бенчмарка в чистом окружении, автогенерация отчетов `qa/acceptance_report.md` и `.planning/phase-4/ACCEPTANCE.md` |
+| T5-01 Dataset & Rubrics Engineering | ⏳ PENDING | `qa/golden_full_dataset.json` (95–110 вопросов, 7 блоков), `qa/regression_pool.json`, `qa/rubrics.py`, `qa/config.yaml` |
+| T5-02 Offline MCP Agent & Baselines | ⏳ PENDING | `qa/offline_mcp_agent.py` (Qwen 10 MCP tools), `qa/baseline_runner.py` (Group A/B/C), `qa/leakage_check.py` (< 30%) |
+| T5-03 Gemini LLM-as-a-Judge Engine | ⏳ PENDING | `qa/eval_judge.py` (M1–M8, M4 3-judge rubric agreement, 95% Wilson/Bootstrap CI, 10% human audit calibration) |
+| T5-04 Full Orchestrator & Markdown Report | ⏳ PENDING | `qa/full_eval_runner.py` ($N=3$ runs, median aggregation, regression check, `qa/reports/full_eval_report.md`) |
+| T5-05 Execution, Verification & Sign-Off | ⏳ PENDING | Сквозной прогон бенчмарка, верификация критериев успеха и фиксация UAT |
 
 ---
 
@@ -32,6 +32,7 @@
 | 2.1 | mkp-builder Rules & Bookpack v0.3 | ✅ Complete (8/8 PASS) |
 | 3 | mkp-server (10 MCP Tools, Storage & WAL) | ✅ Complete (8/8 PASS) |
 | 4 | QA & Acceptance | ✅ Complete (4/4 PASS) |
+| 5 | Full Evaluation & Quality Benchmark | ⏳ Ready to Execute (0/5 Tasks) |
 
 ---
 

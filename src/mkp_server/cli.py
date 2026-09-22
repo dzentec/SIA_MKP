@@ -44,8 +44,8 @@ def info_command(
     table.add_row("Total Rules", str(stats.total_rules))
     table.add_row("Total Triplets", str(stats.total_triplets))
     table.add_row("Disk Usage", f"{stats.disk_usage_bytes / (1024*1024):.2f} MB")
-    table.add_row("Backup Available", "✅ Yes" if stats.has_backup else "❌ No")
-    table.add_row("Fallback Available", "✅ Yes" if stats.has_fallback else "❌ No")
+    table.add_row("Backup Available", "Yes" if stats.has_backup else "No")
+    table.add_row("Fallback Available", "Yes" if stats.has_fallback else "No")
     table.add_row("WAL Status", stats.wal_status)
 
     console.print(table)

@@ -9,7 +9,8 @@
 | 2 | mkp-builder Triplets & Base Export | Триплеты + экспорт артефакта v1.5 + Golden Dataset base | REQ-B06..07, B10, QA-01 | 4 (✅ PASS) |
 | 2.1 | mkp-builder Rules & Bookpack v0.3 | Онтология + Claims + Кластеризация + Синтез правил + Guardrails + Bookpack v0.3.0 + Ed25519 | REQ-R01..06, REQ-B07 | 6 (✅ PASS) |
 | 3 | mkp-server | 4-уровневое хранилище + импорт дельт v0.3.0 + WAL/Rollback (I0–I14) + индексы + 10 MCP-инструментов | REQ-S01..13 | 7 (✅ PASS) |
-| 4 | QA & Acceptance | Сквозной прогон Golden Dataset + 15+ эталонных правил + тест Rollback/WAL | REQ-QA-01, QA-02 | 5 |
+| 4 | QA & Acceptance | Сквозной прогон Golden Dataset + 15+ эталонных правил + тест Rollback/WAL | REQ-QA-01, QA-02 | 5 (✅ PASS) |
+| 5 | Full Evaluation & Quality Benchmark | Полный бенчмарк 2-х книг (95–110 вопросов, 7 блоков), Offline MCP Agent (Qwen), Baseline A/B/C, Gemini LLM-as-a-Judge (M1–M8) | REQ-EVAL-01..06 | 8 |
 
 ---
 
@@ -65,16 +66,39 @@
 
 ---
 
-## Phase 4: QA & Acceptance
+## Phase 4: QA & Acceptance (✅ Завершено)
 **Goal:** Сквозной прогон Golden Dataset через `mkp-server`, аудит точности правил и триплетов, верификация инвариантов надежности Rollback/WAL, финальный отчёт приёмки.  
 **Mode:** qa  
 **Duration:** 1 день  
+**Plan:** `.planning/phase-4/PLAN.md`
 
 **Requirements:** REQ-QA-01, REQ-QA-02
 
 **Success Criteria:**
-1. Hallucination rate = 0 на Golden Dataset.
-2. Rule recall ≥ 0.8; Citation rate ≥ 0.9.
-3. 15+ правил с полной трассируемостью до первоисточника.
-4. Прохождение тестов сбоя питания / отката обновлений (I0–I14).
-5. Отчёт приёмки (`acceptance_report.md`) зафиксирован.
+1. Hallucination rate = 0 на Golden Dataset (0.0%).
+2. Rule recall ≥ 0.8 (87.5%); Citation rate ≥ 0.9 (100.0%).
+3. 15+ правил с полной трассируемостью до первоисточника (15/15).
+4. Прохождение тестов сбоя питания / отката обновлений (I0–I14: 100% PASS).
+5. Отчёт приёмки (`acceptance_report.md` & `UAT.md`) зафиксирован.
+
+---
+
+## Phase 5: Full Evaluation & Quality Benchmark
+**Goal:** Реализация полноценного тестового стенда по спецификации **MKP-R Full Evaluation Spec v1.1**: расширенный датасет из 95–110 вопросов (7 блоков), автономный оффлайн-агент (Qwen2.5) с вызовом 10 MCP-инструментов, замеры Baseline A/B/C, проверка Data Leakage, судейство LLM-as-a-Judge (Gemini API), расчет 8 активных метрик (M1–M8) с доверительными интервалами (95% CI), регрессионный пул и автогенерация детального отчета `qa/reports/full_eval_report.md`.  
+**Mode:** standard / ai-eval  
+**Duration:** 2–3 дня  
+**Plan:** `.planning/phase-5/PLAN.md`  
+**Spec:** `.init_doc/MKP-R Full Evaluation Spec v1.1_1of2.md`, `.init_doc/MKP-R Full Evaluation Spec v1.1_2of2.md`
+
+**Requirements:** REQ-EVAL-01, REQ-EVAL-02, REQ-EVAL-03, REQ-EVAL-04, REQ-EVAL-05, REQ-EVAL-06
+
+**Success Criteria:**
+1. Датасет `qa/golden_full_dataset.json` на 95–110 вопросов по 7 блокам (Sail Trim, Seamanship, Cross-Book, Negative, Adversarial, Guardrails, Update/Rollback — DEFERRED).
+2. Модуль `qa/offline_mcp_agent.py` реализует автономного оффлайн-агента на базе локального Qwen2.5:7b, подключающегося к `mkp-server` через 10 MCP-инструментов с сохранением сырых трасс JSONL.
+3. Модуль `baseline_runner.py` проводит замеры контрольных групп: Baseline A (No-MCP), Baseline B (Search-only) с фиксацией $\Delta \ge 20$ п.п. по Faithfulness.
+4. Модуль `leakage_check.py` подтверждает отсутствие утечки данных (Leakage < 30%).
+5. Модуль `eval_judge.py` на базе Gemini API оценивает утверждения, проверяет толерантность цитат (±1 стр, 0 ошибок книги), M3 Rule Recall, M4 Cross-Domain rubric (3 независимых судьи), M5/M6 Guardrails, M7 Refusals и M8 Adversarial.
+6. Расчет доверительных интервалов (95% CI) по Wilson score и Bootstrap.
+7. Регрессионный раннер `qa/regression_pool.json` с выборкой 10 вопросов.
+8. Генерация итогового отчета `qa/reports/full_eval_report.md` с таксономией ошибок и атрибуцией причин.
+

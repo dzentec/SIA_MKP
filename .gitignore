@@ -46,6 +46,13 @@ work/
 .cache/
 *.log
 
+# Storage & Raw evaluation data
+storage/
+storage_*/
+qa/raw/
+qa/reports/*.pdf
+
 # Initial & source documents
 .init_doc/
 init_doc/
+
