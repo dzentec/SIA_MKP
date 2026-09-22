@@ -1,15 +1,16 @@
 # SIA Maritime Ontology (v0.1.0)
 
-Предметная онтология морских терминов, архетипов судов, параметров телеметрии, действий и аварийных ситуаций для проекта MKP-R (Maritime Knowledge Pipeline with Rules).
+Domain ontology of maritime terminology, yacht archetypes, telemetry signals, operational actions, and safety failure modes for the MKP-R (Maritime Knowledge Pipeline with Rules) project.
 
-## Структура
+## Structure
 
-* `sia_ontology.yaml` — базовые сущности (домены, архетипы яхт, сигналы телеметрии, действия, аварийные отказы/ситуации).
-* `sia_relations.yaml` — предикаты и типы отношений между сущностями и утверждениями.
-* `mapping.yaml` — словарь нормализации терминов естественного языка (RU/EN) в канонические ID онтологии.
+* `sia_ontology.yaml` — Core entities (operational domains, vessel hull archetypes, telemetry signals, actions, failure modes).
+* `sia_relations.yaml` — Predicates and relation taxonomy between maritime entities, claims, and rules.
+* `mapping.yaml` — Multi-lingual synonym dictionary (EN & RU) mapping natural language keywords to canonical English ontology IDs.
 
-## Использование в конвейере
+## Pipeline Integration
 
-1. **Extraction (`claims.py`):** сопоставление извлекаемых фактов с каноническими ID онтологии.
-2. **Clustering (`cluster.py`):** группировка фактов по архетипам и доменам онтологии.
-3. **Synthesis (`synthesize.py`):** валидация условий триггеров и действий по словарю онтологии.
+1. **Extraction (`claims.py`):** Maps extracted facts from text chunks to canonical ontology IDs.
+2. **Clustering (`cluster.py`):** Groups facts by vessel archetypes and operational domains.
+3. **Synthesis (`synthesize.py`):** Validates rule triggers and actions against canonical ontology schema.
+4. **Server (`mkp-server`):** Powers semantic filtering in `query_rules` and knowledge graph lookups.
