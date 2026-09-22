@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 def generate_golden_t1_rules(book_id: str = "dedekam_seamanship") -> list[Rule]:
     """Seed verified 15+ Golden Rules for T1 Base knowledge."""
-    rules_data = [
+    rules_data: list[dict[str, Any]] = [
         {
             "rule_id": "RULE_SAFETY_001_HEEL_LIMIT",
             "domain": "safety",
@@ -281,37 +281,38 @@ def generate_golden_t1_rules(book_id: str = "dedekam_seamanship") -> list[Rule]:
 
     rules: list[Rule] = []
     for rd in rules_data:
+        page_num = int(rd["page"])
         src = RuleSource(
             doc_id=book_id,
-            page=rd["page"],
-            chunk_id=f"{book_id}_p{rd['page']:03d}_c01",
-            quote=rd["quote"],
+            page=page_num,
+            chunk_id=f"{book_id}_p{page_num:03d}_c01",
+            quote=str(rd["quote"]),
         )
         triggers = [
             RuleTrigger(
-                ontology_field=t["ontology_field"],
-                operator=t["operator"],
+                ontology_field=str(t["ontology_field"]),
+                operator=str(t["operator"]),  # type: ignore[arg-type]
                 value=t["value"],
-                unit=t.get("unit", ""),
+                unit=str(t.get("unit", "")),
             )
-            for t in rd["triggers"]
+            for t in list(rd.get("triggers", []))
         ]
         actions = [
             RuleAction(
-                action_id=a["action_id"],
-                description=a.get("description", ""),
+                action_id=str(a["action_id"]),
+                description=str(a.get("description", "")),
             )
-            for a in rd["actions"]
+            for a in list(rd.get("actions", []))
         ]
         r = Rule(
-            rule_id=rd["rule_id"],
-            domain=rd["domain"],
-            archetype=rd["archetype"],
+            rule_id=str(rd["rule_id"]),
+            domain=rd["domain"],  # type: ignore[arg-type]
+            archetype=list(rd["archetype"]),
             triggers=triggers,
-            triggers_logic=rd.get("triggers_logic", "ALL"),
+            triggers_logic=str(rd.get("triggers_logic", "ALL")),  # type: ignore[arg-type]
             actions=actions,
-            severity=rd["severity"],
-            uncertainty=rd["uncertainty"],
+            severity=rd["severity"],  # type: ignore[arg-type]
+            uncertainty=rd["uncertainty"],  # type: ignore[arg-type]
             tier="T1",
             origin="base",
             review_mode="manual",

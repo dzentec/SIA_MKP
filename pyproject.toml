@@ -46,3 +46,11 @@ mkp-server = "mkp_server.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = [".", "src"]
+
+[tool.pyright]
+include = ["src", "qa", "tests"]
+extraPaths = [".", "src"]
+

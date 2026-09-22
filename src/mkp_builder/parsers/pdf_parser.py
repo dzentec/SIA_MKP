@@ -7,9 +7,36 @@ import logging
 from collections import defaultdict
 from pathlib import Path
 
-from PIL import Image
-from docling.document_converter import DocumentConverter, PdfFormatOption
-from docling_core.types.doc.labels import DocItemLabel
+from typing import Any
+
+try:
+    from PIL import Image
+except (ImportError, AttributeError):
+    Image = None
+
+try:
+    from docling.document_converter import DocumentConverter, PdfFormatOption
+    from docling.datamodel.base_models import InputFormat
+    from docling_core.types.doc.labels import DocItemLabel
+except ImportError:
+    class DocumentConverter:  # type: ignore
+        def __init__(self, **kwargs: Any):
+            pass
+        def convert(self, *args: Any, **kwargs: Any):
+            raise NotImplementedError("docling is required for PDF parsing")
+
+    class PdfFormatOption:  # type: ignore
+        def __init__(self, **kwargs: Any):
+            pass
+
+    class InputFormat:  # type: ignore
+        PDF = "pdf"
+
+    class DocItemLabel:  # type: ignore
+        PICTURE = "picture"
+        TABLE = "table"
+        SECTION_HEADER = "section_header"
+        TEXT = "text"
 
 from mkp_common.location import format_pdf_ref
 from mkp_builder.ocr import build_pipeline_options, OcrProfile, OcrEngine
@@ -44,7 +71,7 @@ class PDFParser:
         )
         self.converter = DocumentConverter(
             format_options={
-                "pdf": PdfFormatOption(pipeline_options=self.pipeline_options)
+                InputFormat.PDF: PdfFormatOption(pipeline_options=self.pipeline_options)  # type: ignore
             }
         )
 
@@ -88,7 +115,7 @@ class PDFParser:
                 caption_text = str(picture.caption)
 
             try:
-                pil_image: Image.Image = picture.get_image(doc)
+                pil_image = picture.get_image(doc)
                 if pil_image:
                     buf = io.BytesIO()
                     pil_image.save(buf, format="PNG")

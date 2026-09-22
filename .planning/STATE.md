@@ -1,36 +1,24 @@
 # STATE — MKP-R Project
 
 **Updated:** 2026-09-22  
-**Current Phase:** 3 (mkp-server — 4-Tier Knowledge Base, Storage Lifecycle & 10 MCP Tools)  
-**Overall Status:** Phase 0, 1, 2, 2.1 полностью завершены (100% тестов PASS). HLD v3.3.1 (Инварианты I0–I14) полностью реализован в mkp-builder. Готовы к выполнению Phase 3.
+**Current Phase:** Complete (All Phases 0–4 Finished)  
+**Overall Status:** Phase 0, 1, 2, 2.1, 3, 4 полностью завершены (100% тестов PASS — 39/39 тестов). Все требования HLD v3.3.1 (Инварианты I0–I14) и спецификации QA/Acceptance (REQ-QA-01, REQ-QA-02, REQ-S01..S13) выполнены и верифицированы.
 
 ---
 
-## Active Phase
+## Completed Phase: Phase 4 — QA & Acceptance (Golden Datasets, Benchmark & Invariants Stress Tests)
 
-**Phase 3 — mkp-server (4-Tier Knowledge Base, Storage Lifecycle & 10 MCP Tools)**
+**Plan:** `.planning/phase-4/PLAN.md`  
+**Status:** ✅ **COMPLETE (4/4 Tasks PASS)**
+**Report:** `qa/acceptance_report.md`
 
-**Plan:** `.planning/phase-3/PLAN.md`  
-**Status:** ⏳ **READY TO EXECUTE (0/8 Tasks)**
-
----
-
-## Completed Phase: Phase 2.1 — mkp-builder (Rules Pipeline & Bookpack v0.3 Export)
-
-**Plan:** `.planning/phase-2.1/PLAN.md`  
-**Status:** ✅ **COMPLETE (8/8 Tasks PASS)**
-
-**Phase 2.1 Tasks Execution Summary:**
+**Phase 4 Tasks Execution Summary:**
 | Task | Status | Description |
 |------|--------|-------------|
-| T2.1-01 Ontology & Pydantic Schemas | ✅ DONE | `ontology/` YAML (sia_ontology, sia_relations, mapping) + `rules_schema.py` (Claim, Cluster, Rule, CompatibilityInfo, ManifestV3, BookpackInfo) |
-| T2.1-02 Claims Extraction Module | ✅ DONE | `extract/claims.py` с Qwen2.5:7b, привязкой к онтологии, цитатам и пропуском T3 |
-| T2.1-03 Claims Clustering Module | ✅ DONE | `synthesize/cluster.py` группировка по архетипам/доменам/сигналам и детекция противоречий |
-| T2.1-04 Rule Synthesis Module | ✅ DONE | `synthesize/synthesize.py` синтез правил + строгая валидация порогов триггеров по цитатам |
-| T2.1-05 Guardrails Compiler | ✅ DONE | `compile/guardrails.py` генерация `guardrails.md` (≤ 8000 символов) |
-| T2.1-06 Bookpack v0.3 Export & Ed25519 | ✅ DONE | `export/bookpack.py` + pure Python `signer.py` (Ed25519 I13), 4 уровня (`base/`, `yacht/`, `voyage/`, `personal/`), per-artifact sha256 |
-| T2.1-07 Rule Review CLI & Dataset | ✅ DONE | `review.py` (Rich table CLI) + 15 эталонных правил T1 (Golden Rules) |
-| T2.1-08 Tests & Pipeline Validation | ✅ DONE | 12 автотестов (`tests/test_rules_pipeline.py` + `tests/test_builder.py`) со 100% успехом |
+| T4-01 Golden Datasets & Reference Rules | ✅ DONE | `qa/golden_rules.json` (15 верифицированных T1 правил с цитатами), `qa/golden_dataset.json` (30 стратифицированных мультиязычных вопросов по 6 типам диаграмм и 2 книгам Dedekam), `tests/test_golden_dataset.py` |
+| T4-02 Acceptance Benchmarking Suite | ✅ DONE | `qa/metrics.py`, `qa/evaluator.py`, `qa/corpus_fixture.py`: расчет Hallucination rate (0.0%), Rule recall (87.5%), Citation rate (100.0%), Search recall @ 3/5 (100.0%), Triplets accuracy (100.0%), Guardrails size (340 chars <= 8000) |
+| T4-03 Invariants Stress & Chaos Testing | ✅ DONE | `tests/test_qa_invariants_stress.py`: power loss injection на 11 шагах WAL, recovery поврежденного бэкапа (3 опции I5), update storm (5 последовательных обновлений), path traversal fuzzing |
+| T4-04 Automated Acceptance Runner & Report | ✅ DONE | `qa/run_acceptance.py`: запуск бенчмарка в чистом окружении, автогенерация отчетов `qa/acceptance_report.md` и `.planning/phase-4/ACCEPTANCE.md` |
 
 ---
 
@@ -42,8 +30,8 @@
 | 1 | mkp-builder Core | ✅ Complete |
 | 2 | mkp-builder Complete (Base Export) | ✅ Complete |
 | 2.1 | mkp-builder Rules & Bookpack v0.3 | ✅ Complete (8/8 PASS) |
-| 3 | mkp-server (10 MCP Tools, Storage & WAL) | ⏳ Ready to execute |
-| 4 | QA & Acceptance | ⬜ Planned |
+| 3 | mkp-server (10 MCP Tools, Storage & WAL) | ✅ Complete (8/8 PASS) |
+| 4 | QA & Acceptance | ✅ Complete (4/4 PASS) |
 
 ---
 

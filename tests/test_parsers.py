@@ -1,8 +1,8 @@
-"""Tests for document parsers."""
-
 from pathlib import Path
 import pytest
-from mkp_builder.parsers import get_parser, EPUBParser, PDFParser
+from mkp_builder.parsers.epub_parser import EPUBParser
+from mkp_builder.parsers.pdf_parser import PDFParser
+from mkp_builder.parsers import get_parser
 
 
 def test_epub_parser_real():

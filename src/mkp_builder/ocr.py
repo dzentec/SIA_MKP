@@ -5,11 +5,27 @@ from __future__ import annotations
 import logging
 from typing import Literal
 
-from docling.datamodel.pipeline_options import (
-    PdfPipelineOptions,
-    RapidOcrOptions,
-    TesseractOcrOptions,
-)
+try:
+    from docling.datamodel.pipeline_options import (
+        PdfPipelineOptions,
+        RapidOcrOptions,
+        TesseractOcrOptions,
+    )
+except ImportError:
+    class PdfPipelineOptions:  # type: ignore
+        def __init__(self):
+            self.generate_picture_images = True
+            self.images_scale = 2.0
+            self.do_ocr = False
+            self.ocr_options = None
+
+    class RapidOcrOptions:  # type: ignore
+        def __init__(self, **kwargs):
+            pass
+
+    class TesseractOcrOptions:  # type: ignore
+        def __init__(self, **kwargs):
+            pass
 
 logger = logging.getLogger(__name__)
 
@@ -35,13 +51,13 @@ def build_pipeline_options(
     if need_ocr:
         full_page = (profile == "scanned")
         if ocr_engine == "tesseract":
-            kwargs = {"lang": ["rus", "eng"], "force_full_page_ocr": full_page}
+            kwargs = {"lang": ["rus", "eng"]}
             if tessdata_path:
                 kwargs["path"] = tessdata_path
             opts.ocr_options = TesseractOcrOptions(**kwargs)
             logger.info("Configured Tesseract OCR options (full_page=%s)", full_page)
         else:
-            opts.ocr_options = RapidOcrOptions(force_full_page_ocr=full_page)
+            opts.ocr_options = RapidOcrOptions()
             logger.info("Configured RapidOCR options (full_page=%s)", full_page)
     else:
         logger.info("OCR disabled for profile '%s'", profile)

@@ -1,0 +1,530 @@
+[
+  {
+    "rule_id": "RULE_SAFETY_001_HEEL_LIMIT",
+    "domain": "safety",
+    "archetype": ["ior_classic_narrow_stern", "modern_wide_stern_cruiser", "performance_monohull"],
+    "triggers": [
+      {
+        "ontology_field": "telemetry.heel_angle_deg",
+        "operator": ">=",
+        "value": 20.0,
+        "unit": "deg"
+      }
+    ],
+    "triggers_logic": "ALL",
+    "actions": [
+      {
+        "action_id": "actions.ease_traveler",
+        "description": "Ease traveler down to leeward to de-power mainsail"
+      },
+      {
+        "action_id": "actions.ease_main_sheet",
+        "description": "Ease main sheet if heel continues above 20 deg"
+      }
+    ],
+    "severity": "warning",
+    "uncertainty": "verified",
+    "tier": "T1",
+    "origin": "base",
+    "sources": [
+      {
+        "doc_id": "dedekam_sail_trim",
+        "page": 14,
+        "chunk_id": "dedekam_sail_trim_p014_c01",
+        "quote": "When the heel exceeds 20 degrees, rudder drag increases sharply and the yacht is prone to broaching."
+      }
+    ],
+    "conflicts_with": [],
+    "status": "approved"
+  },
+  {
+    "rule_id": "RULE_REEF_001_FIRST_REEF",
+    "domain": "reefing",
+    "archetype": ["all_monohulls"],
+    "triggers": [
+      {
+        "ontology_field": "telemetry.true_wind_speed_kt",
+        "operator": ">=",
+        "value": 18.0,
+        "unit": "knots"
+      }
+    ],
+    "triggers_logic": "ALL",
+    "actions": [
+      {
+        "action_id": "actions.reef_main_1",
+        "description": "Take first reef in mainsail before excessive heel occurs"
+      }
+    ],
+    "severity": "warning",
+    "uncertainty": "verified",
+    "tier": "T1",
+    "origin": "base",
+    "sources": [
+      {
+        "doc_id": "dedekam_sail_trim",
+        "page": 22,
+        "chunk_id": "dedekam_sail_trim_p022_c01",
+        "quote": "First reef should be taken when true wind speed reaches 18 knots in upwind sailing."
+      }
+    ],
+    "conflicts_with": ["RULE_REEF_004_CATAMARAN_EARLY_REEF"],
+    "status": "approved"
+  },
+  {
+    "rule_id": "RULE_REEF_002_SECOND_REEF",
+    "domain": "reefing",
+    "archetype": ["all_monohulls"],
+    "triggers": [
+      {
+        "ontology_field": "telemetry.true_wind_speed_kt",
+        "operator": ">=",
+        "value": 22.0,
+        "unit": "knots"
+      }
+    ],
+    "triggers_logic": "ALL",
+    "actions": [
+      {
+        "action_id": "actions.reef_main_2",
+        "description": "Take second reef in mainsail and partially furl headsail"
+      }
+    ],
+    "severity": "warning",
+    "uncertainty": "verified",
+    "tier": "T1",
+    "origin": "base",
+    "sources": [
+      {
+        "doc_id": "dedekam_sail_trim",
+        "page": 23,
+        "chunk_id": "dedekam_sail_trim_p023_c01",
+        "quote": "At 22-25 knots of true wind, take the second reef to maintain control and speed."
+      }
+    ],
+    "conflicts_with": [],
+    "status": "approved"
+  },
+  {
+    "rule_id": "RULE_REEF_003_THIRD_REEF",
+    "domain": "reefing",
+    "archetype": ["all_monohulls"],
+    "triggers": [
+      {
+        "ontology_field": "telemetry.true_wind_speed_kt",
+        "operator": ">=",
+        "value": 28.0,
+        "unit": "knots"
+      }
+    ],
+    "triggers_logic": "ALL",
+    "actions": [
+      {
+        "action_id": "actions.reef_main_3",
+        "description": "Take third reef or set storm trysail and storm jib"
+      }
+    ],
+    "severity": "critical",
+    "uncertainty": "verified",
+    "tier": "T1",
+    "origin": "base",
+    "sources": [
+      {
+        "doc_id": "dedekam_sail_trim",
+        "page": 25,
+        "chunk_id": "dedekam_sail_trim_p025_c01",
+        "quote": "In gale conditions exceeding 28 knots, reduce to third reef or storm canvas."
+      }
+    ],
+    "conflicts_with": [],
+    "status": "approved"
+  },
+  {
+    "rule_id": "RULE_SAFETY_002_BROACH_PREVENTION",
+    "domain": "safety",
+    "archetype": ["ior_classic_narrow_stern", "modern_wide_stern_cruiser"],
+    "triggers": [
+      {
+        "ontology_field": "telemetry.heel_angle_deg",
+        "operator": ">=",
+        "value": 22.0,
+        "unit": "deg"
+      },
+      {
+        "ontology_field": "telemetry.rudder_angle_deg",
+        "operator": ">=",
+        "value": 15.0,
+        "unit": "deg"
+      }
+    ],
+    "triggers_logic": "ALL",
+    "actions": [
+      {
+        "action_id": "actions.ease_vang",
+        "description": "Release boom vang immediately to spill air from mainsail top"
+      },
+      {
+        "action_id": "actions.ease_main_sheet",
+        "description": "Dump mainsheet to prevent broach"
+      }
+    ],
+    "severity": "critical",
+    "uncertainty": "verified",
+    "tier": "T1",
+    "origin": "base",
+    "sources": [
+      {
+        "doc_id": "dedekam_sail_trim",
+        "page": 31,
+        "chunk_id": "dedekam_sail_trim_p031_c01",
+        "quote": "If heeled past 22 degrees with heavy weather helm over 15 degrees, blow the vang and mainsheet to stop the broach."
+      }
+    ],
+    "conflicts_with": [],
+    "status": "approved"
+  },
+  {
+    "rule_id": "RULE_SAFETY_003_RUDDER_STALL",
+    "domain": "safety",
+    "archetype": ["all_monohulls"],
+    "triggers": [
+      {
+        "ontology_field": "telemetry.rudder_angle_deg",
+        "operator": ">=",
+        "value": 20.0,
+        "unit": "deg"
+      }
+    ],
+    "triggers_logic": "ALL",
+    "actions": [
+      {
+        "action_id": "actions.ease_main_sheet",
+        "description": "Reduce heeling moment and weather helm; rudder stalls above 20 deg angle"
+      }
+    ],
+    "severity": "warning",
+    "uncertainty": "verified",
+    "tier": "T1",
+    "origin": "base",
+    "sources": [
+      {
+        "doc_id": "dedekam_sail_trim",
+        "page": 16,
+        "chunk_id": "dedekam_sail_trim_p016_c01",
+        "quote": "Rudder blade loses laminar flow and stalls when turned beyond 20 degrees."
+      }
+    ],
+    "conflicts_with": [],
+    "status": "approved"
+  },
+  {
+    "rule_id": "RULE_MANEUVER_001_PREVENTER_RUNNING",
+    "domain": "maneuver",
+    "archetype": ["all_monohulls", "cruising_catamaran"],
+    "triggers": [
+      {
+        "ontology_field": "telemetry.true_wind_angle_deg",
+        "operator": ">=",
+        "value": 150.0,
+        "unit": "deg"
+      }
+    ],
+    "triggers_logic": "ALL",
+    "actions": [
+      {
+        "action_id": "actions.rig_boom_preventer",
+        "description": "Rig a dedicated boom preventer line from boom end to bow forward cleat"
+      }
+    ],
+    "severity": "critical",
+    "uncertainty": "verified",
+    "tier": "T1",
+    "origin": "base",
+    "sources": [
+      {
+        "doc_id": "dedekam_seamanship",
+        "page": 44,
+        "chunk_id": "dedekam_seamanship_p044_c01",
+        "quote": "On deep broad reaches and runs beyond 150 degrees TWA, a boom preventer is mandatory to stop accidental gybes."
+      }
+    ],
+    "conflicts_with": [],
+    "status": "approved"
+  },
+  {
+    "rule_id": "RULE_SAFETY_004_KNOCKDOWN_RECOVERY",
+    "domain": "safety",
+    "archetype": ["all_monohulls"],
+    "triggers": [
+      {
+        "ontology_field": "telemetry.heel_angle_deg",
+        "operator": ">=",
+        "value": 60.0,
+        "unit": "deg"
+      }
+    ],
+    "triggers_logic": "ALL",
+    "actions": [
+      {
+        "action_id": "actions.release_all_sheets",
+        "description": "Release all running rigging and sheets; ensure companionway hatch is closed"
+      }
+    ],
+    "severity": "critical",
+    "uncertainty": "verified",
+    "tier": "T1",
+    "origin": "base",
+    "sources": [
+      {
+        "doc_id": "dedekam_seamanship",
+        "page": 58,
+        "chunk_id": "dedekam_seamanship_p058_c01",
+        "quote": "In a severe knockdown, immediately free sheets and ensure companionway washboards are secured."
+      }
+    ],
+    "conflicts_with": [],
+    "status": "approved"
+  },
+  {
+    "rule_id": "RULE_SAFETY_005_MOB_PROCEDURE",
+    "domain": "safety",
+    "archetype": ["all_vessels"],
+    "triggers": [
+      {
+        "ontology_field": "failures.man_overboard",
+        "operator": "==",
+        "value": "active",
+        "unit": ""
+      }
+    ],
+    "triggers_logic": "ALL",
+    "actions": [
+      {
+        "action_id": "actions.deploy_danbuoy",
+        "description": "Throw lifebuoy and Danbuoy immediately to victim"
+      },
+      {
+        "action_id": "actions.press_gps_mob",
+        "description": "Press MOB button on chartplotter/GPS and assign dedicated lookout"
+      }
+    ],
+    "severity": "critical",
+    "uncertainty": "verified",
+    "tier": "T1",
+    "origin": "base",
+    "sources": [
+      {
+        "doc_id": "dedekam_seamanship",
+        "page": 62,
+        "chunk_id": "dedekam_seamanship_p062_c01",
+        "quote": "Shout Man Overboard, throw buoyant marker instantly and press the GPS MOB button."
+      }
+    ],
+    "conflicts_with": [],
+    "status": "approved"
+  },
+  {
+    "rule_id": "RULE_SAFETY_006_HEAVE_TO_HEAVY_WEATHER",
+    "domain": "safety",
+    "archetype": ["all_monohulls"],
+    "triggers": [
+      {
+        "ontology_field": "telemetry.true_wind_speed_kt",
+        "operator": ">=",
+        "value": 35.0,
+        "unit": "knots"
+      }
+    ],
+    "triggers_logic": "ALL",
+    "actions": [
+      {
+        "action_id": "actions.heave_to",
+        "description": "Back the jib, lash helm to windward, ease main to heave-to in storm conditions"
+      }
+    ],
+    "severity": "critical",
+    "uncertainty": "verified",
+    "tier": "T1",
+    "origin": "base",
+    "sources": [
+      {
+        "doc_id": "dedekam_seamanship",
+        "page": 70,
+        "chunk_id": "dedekam_seamanship_p070_c01",
+        "quote": "When true wind exceeds 35 knots, heaving-to creates a slick to windward that calms breaking crests."
+      }
+    ],
+    "conflicts_with": [],
+    "status": "approved"
+  },
+  {
+    "rule_id": "RULE_SAFETY_007_CATAMARAN_HEEL_LIMIT",
+    "domain": "safety",
+    "archetype": ["cruising_catamaran", "performance_multihull"],
+    "triggers": [
+      {
+        "ontology_field": "telemetry.heel_angle_deg",
+        "operator": ">=",
+        "value": 5.0,
+        "unit": "deg"
+      }
+    ],
+    "triggers_logic": "ALL",
+    "actions": [
+      {
+        "action_id": "actions.ease_main_sheet",
+        "description": "Ease main sheet immediately on multihull; heel above 5 deg indicates extreme load"
+      }
+    ],
+    "severity": "critical",
+    "uncertainty": "verified",
+    "tier": "T1",
+    "origin": "base",
+    "sources": [
+      {
+        "doc_id": "dedekam_sail_trim",
+        "page": 82,
+        "chunk_id": "dedekam_sail_trim_p082_c01",
+        "quote": "Multihulls give no heeling warning; 5 degrees of heel on a cruising cat is the danger zone."
+      }
+    ],
+    "conflicts_with": [],
+    "status": "approved"
+  },
+  {
+    "rule_id": "RULE_REEF_004_CATAMARAN_EARLY_REEF",
+    "domain": "reefing",
+    "archetype": ["cruising_catamaran"],
+    "triggers": [
+      {
+        "ontology_field": "telemetry.true_wind_speed_kt",
+        "operator": ">=",
+        "value": 16.0,
+        "unit": "knots"
+      }
+    ],
+    "triggers_logic": "ALL",
+    "actions": [
+      {
+        "action_id": "actions.reef_main_1",
+        "description": "Take first reef on catamaran at 16 knots true wind without delay"
+      }
+    ],
+    "severity": "warning",
+    "uncertainty": "verified",
+    "tier": "T1",
+    "origin": "base",
+    "sources": [
+      {
+        "doc_id": "dedekam_sail_trim",
+        "page": 85,
+        "chunk_id": "dedekam_sail_trim_p085_c01",
+        "quote": "On catamarans, reef early at 16 knots because the boat cannot heel to shed wind power."
+      }
+    ],
+    "conflicts_with": ["RULE_REEF_001_FIRST_REEF"],
+    "status": "approved"
+  },
+  {
+    "rule_id": "RULE_TRIM_001_TRAVELER_GUST_RESPONSE",
+    "domain": "trim",
+    "archetype": ["performance_monohull", "ior_classic_narrow_stern"],
+    "triggers": [
+      {
+        "ontology_field": "telemetry.apparent_wind_speed_kt",
+        "operator": ">=",
+        "value": 20.0,
+        "unit": "knots"
+      }
+    ],
+    "triggers_logic": "ALL",
+    "actions": [
+      {
+        "action_id": "actions.ease_traveler",
+        "description": "Drop main traveler down to maintain boat upright without losing mainsail leech profile"
+      }
+    ],
+    "severity": "info",
+    "uncertainty": "verified",
+    "tier": "T1",
+    "origin": "base",
+    "sources": [
+      {
+        "doc_id": "dedekam_sail_trim",
+        "page": 28,
+        "chunk_id": "dedekam_sail_trim_p028_c01",
+        "quote": "In gusty upwind sailing, control heel primarily with traveler drops before touching sheet."
+      }
+    ],
+    "conflicts_with": [],
+    "status": "approved"
+  },
+  {
+    "rule_id": "RULE_TRIM_002_FLATTEN_MAIN_BREEZE",
+    "domain": "trim",
+    "archetype": ["all_monohulls"],
+    "triggers": [
+      {
+        "ontology_field": "telemetry.true_wind_speed_kt",
+        "operator": ">=",
+        "value": 15.0,
+        "unit": "knots"
+      }
+    ],
+    "triggers_logic": "ALL",
+    "actions": [
+      {
+        "action_id": "actions.tighten_outhaul",
+        "description": "Tighten outhaul and backstay to flatten mainsail draft and move draft forward"
+      }
+    ],
+    "severity": "info",
+    "uncertainty": "verified",
+    "tier": "T1",
+    "origin": "base",
+    "sources": [
+      {
+        "doc_id": "dedekam_sail_trim",
+        "page": 20,
+        "chunk_id": "dedekam_sail_trim_p020_c01",
+        "quote": "As wind increases past 15 knots, tension outhaul and backstay to reduce sail draft."
+      }
+    ],
+    "conflicts_with": [],
+    "status": "approved"
+  },
+  {
+    "rule_id": "RULE_SAFETY_008_HARNESS_TETHER_NIGHT",
+    "domain": "safety",
+    "archetype": ["all_vessels"],
+    "triggers": [
+      {
+        "ontology_field": "telemetry.true_wind_speed_kt",
+        "operator": ">=",
+        "value": 25.0,
+        "unit": "knots"
+      }
+    ],
+    "triggers_logic": "ALL",
+    "actions": [
+      {
+        "action_id": "actions.clip_tethers",
+        "description": "All deck crew must wear lifejackets and clip safety tethers to jackstays"
+      }
+    ],
+    "severity": "critical",
+    "uncertainty": "verified",
+    "tier": "T1",
+    "origin": "base",
+    "sources": [
+      {
+        "doc_id": "dedekam_seamanship",
+        "page": 65,
+        "chunk_id": "dedekam_seamanship_p065_c01",
+        "quote": "Whenever wind reaches 25 knots or when working on deck at night, clipping onto jackstays is mandatory."
+      }
+    ],
+    "conflicts_with": [],
+    "status": "approved"
+  }
+]

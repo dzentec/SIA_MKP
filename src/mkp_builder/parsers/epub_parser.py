@@ -10,7 +10,10 @@ from pathlib import Path
 from bs4 import BeautifulSoup
 import ebooklib
 from ebooklib import epub
-from PIL import Image
+try:
+    from PIL import Image
+except ImportError:
+    Image = None
 
 from mkp_common.location import format_epub_ref
 from mkp_builder.parsers.base import (
