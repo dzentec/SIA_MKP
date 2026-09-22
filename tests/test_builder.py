@@ -109,6 +109,7 @@ def test_builder_pipeline_fast(tmp_path: Path):
         lang="en",
         skip_vlm=True,
         skip_triplets=True,
+        skip_rules=True,
     )
 
     assert zip_path.exists()

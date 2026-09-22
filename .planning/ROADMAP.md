@@ -7,7 +7,7 @@
 | 0 | PoC & Validation | Закрыть все технические риски до начала основной разработки | REQ-P0-01..07 | 7 (✅ PASS) |
 | 1 | mkp-builder Core | Парсинг + VLM + верификация + чанкинг + TUI | REQ-B01..05, B08..09, C01..02, C03..04 | 5 (✅ PASS) |
 | 2 | mkp-builder Triplets & Base Export | Триплеты + экспорт артефакта v1.5 + Golden Dataset base | REQ-B06..07, B10, QA-01 | 4 (✅ PASS) |
-| 2.1 | mkp-builder Rules & Bookpack v0.3 | Онтология + Claims + Кластеризация + Синтез правил + Guardrails + Bookpack v0.3.0 + Ed25519 | REQ-R01..06, REQ-B07 | 6 |
+| 2.1 | mkp-builder Rules & Bookpack v0.3 | Онтология + Claims + Кластеризация + Синтез правил + Guardrails + Bookpack v0.3.0 + Ed25519 | REQ-R01..06, REQ-B07 | 6 (✅ PASS) |
 | 3 | mkp-server | 4-уровневое хранилище + импорт дельт v0.3.0 + WAL/Rollback (I0–I14) + индексы + 10 MCP-инструментов | REQ-S01..13 | 7 |
 | 4 | QA & Acceptance | Сквозной прогон Golden Dataset + 15+ эталонных правил + тест Rollback/WAL | REQ-QA-01, QA-02 | 5 |
 

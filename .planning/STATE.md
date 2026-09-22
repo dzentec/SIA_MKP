@@ -1,29 +1,36 @@
 # STATE — MKP-R Project
 
 **Updated:** 2026-09-22  
-**Current Phase:** 2.1 (mkp-builder — Rules Pipeline & Bookpack v0.3 Export)  
-**Overall Status:** Phase 0, 1, 2 завершены. HLD v3.3.1 (Инварианты I0–I14) полностью интегрирован в проект. План Phase 2.1 обновлен и готов к выполнению.
+**Current Phase:** 3 (mkp-server — 4-Tier Knowledge Base, Storage Lifecycle & 10 MCP Tools)  
+**Overall Status:** Phase 0, 1, 2, 2.1 полностью завершены (100% тестов PASS). HLD v3.3.1 (Инварианты I0–I14) полностью реализован в mkp-builder. Готовы к выполнению Phase 3.
 
 ---
 
 ## Active Phase
 
-**Phase 2.1 — mkp-builder (Rules Pipeline & Bookpack v0.3 Export)**
+**Phase 3 — mkp-server (4-Tier Knowledge Base, Storage Lifecycle & 10 MCP Tools)**
 
-**Plan:** `.planning/phase-2.1/PLAN.md`  
+**Plan:** `.planning/phase-3/PLAN.md`  
 **Status:** ⏳ **READY TO EXECUTE (0/8 Tasks)**
 
-**Phase 2.1 Tasks:**
+---
+
+## Completed Phase: Phase 2.1 — mkp-builder (Rules Pipeline & Bookpack v0.3 Export)
+
+**Plan:** `.planning/phase-2.1/PLAN.md`  
+**Status:** ✅ **COMPLETE (8/8 Tasks PASS)**
+
+**Phase 2.1 Tasks Execution Summary:**
 | Task | Status | Description |
 |------|--------|-------------|
-| T2.1-01 Ontology & Pydantic Schemas | ⏳ PENDING | `ontology/` YAML + `rules_schema.py` (Claim, Cluster, Rule, CompatibilityInfo, ManifestV3) |
-| T2.1-02 Claims Extraction Module | ⏳ PENDING | `extract/claims.py` с Qwen2.5:7b, привязкой к онтологии и цитатам |
-| T2.1-03 Claims Clustering Module | ⏳ PENDING | `synthesize/cluster.py` группировка по архетипам/доменам/сигналам |
-| T2.1-04 Rule Synthesis Module | ⏳ PENDING | `synthesize/synthesize.py` синтез правил + валидация порогов триггеров |
-| T2.1-05 Guardrails Compiler | ⏳ PENDING | `compile/guardrails.py` генерация `guardrails.md` (≤ 8000 символов) |
-| T2.1-06 Bookpack v0.3 Export & Ed25519 | ⏳ PENDING | `export/bookpack.py` 4-уровневая структура (`base/`, `yacht/`, `voyage/`, `personal/`), per-artifact sha256, Ed25519 подпись (I13) |
-| T2.1-07 Rule Review CLI & Dataset | ⏳ PENDING | CLI режим ревью + 15+ эталонных правил T1 (Golden Rules) |
-| T2.1-08 Tests & Pipeline Validation | ⏳ PENDING | Автотесты схем ManifestV3, Ed25519, пайплайна правил, компилятора и экспорта |
+| T2.1-01 Ontology & Pydantic Schemas | ✅ DONE | `ontology/` YAML (sia_ontology, sia_relations, mapping) + `rules_schema.py` (Claim, Cluster, Rule, CompatibilityInfo, ManifestV3, BookpackInfo) |
+| T2.1-02 Claims Extraction Module | ✅ DONE | `extract/claims.py` с Qwen2.5:7b, привязкой к онтологии, цитатам и пропуском T3 |
+| T2.1-03 Claims Clustering Module | ✅ DONE | `synthesize/cluster.py` группировка по архетипам/доменам/сигналам и детекция противоречий |
+| T2.1-04 Rule Synthesis Module | ✅ DONE | `synthesize/synthesize.py` синтез правил + строгая валидация порогов триггеров по цитатам |
+| T2.1-05 Guardrails Compiler | ✅ DONE | `compile/guardrails.py` генерация `guardrails.md` (≤ 8000 символов) |
+| T2.1-06 Bookpack v0.3 Export & Ed25519 | ✅ DONE | `export/bookpack.py` + pure Python `signer.py` (Ed25519 I13), 4 уровня (`base/`, `yacht/`, `voyage/`, `personal/`), per-artifact sha256 |
+| T2.1-07 Rule Review CLI & Dataset | ✅ DONE | `review.py` (Rich table CLI) + 15 эталонных правил T1 (Golden Rules) |
+| T2.1-08 Tests & Pipeline Validation | ✅ DONE | 12 автотестов (`tests/test_rules_pipeline.py` + `tests/test_builder.py`) со 100% успехом |
 
 ---
 
@@ -34,8 +41,8 @@
 | 0 | PoC & Validation | ✅ Complete (7/7 PASS) |
 | 1 | mkp-builder Core | ✅ Complete |
 | 2 | mkp-builder Complete (Base Export) | ✅ Complete |
-| 2.1 | mkp-builder Rules & Bookpack v0.3 | ⏳ Ready to execute |
-| 3 | mkp-server (10 MCP Tools, Storage & WAL) | ⬜ Planned |
+| 2.1 | mkp-builder Rules & Bookpack v0.3 | ✅ Complete (8/8 PASS) |
+| 3 | mkp-server (10 MCP Tools, Storage & WAL) | ⏳ Ready to execute |
 | 4 | QA & Acceptance | ⬜ Planned |
 
 ---
@@ -46,6 +53,7 @@
 |----------|-------|--------|
 | HLD Architecture | **HLD MKP-R v3.3.1** (DIFF v3.3 + DIFF v3.3.1 Инварианты) | `.init_doc/DIFF*` |
 | Bookpack format | **v0.3.0** (`generation`, `parent_hash`, `compatibility`, `signature.ed25519`, per-artifact sha256) | HLD v3.3 §H.4, I13, I14 |
+| Ed25519 Security | Pure-Python RFC 8032 signer (zero native deps, 100% offline) | Phase 2.1 (I13) |
 | Storage Architecture | 4-уровневая (`active/`, `backup/`, `fallback/` SquashFS R/O, `staging/`, `failed/`) | HLD v3.3 §D, I8, I11 |
 | Rollback & Recovery | WAL с `fsync` директорий, `renameat2` atomic swap, 1 backup (N-1), авто/ручной откат | HLD v3.3 §B/C, v3.3.1 I0–I10 |
 | Content Tiers | T1: Base (MVP, Read-Only), T2: Yacht (Stub), T2.5: Voyage (Stub), T3: Personal (Stub) | HLD v3.3 §A.3, §4 |

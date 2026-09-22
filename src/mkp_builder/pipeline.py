@@ -1,4 +1,4 @@
-"""Core Builder Pipeline Orchestrator (REQ-B01..B10)."""
+"""Core Builder Pipeline Orchestrator (REQ-B01..B10, REQ-R01..R06, HLD v3.3.1)."""
 
 from __future__ import annotations
 
@@ -20,6 +20,11 @@ from mkp_common.models import (
     BookMetadata,
     TripletRecord,
 )
+from mkp_common.rules_schema import (
+    Claim,
+    Cluster,
+    Rule,
+)
 from mkp_builder.parsers import get_parser
 from mkp_builder.parsers.base import ParsedDocument
 from mkp_builder.vlm.client import OllamaClient
@@ -27,14 +32,19 @@ from mkp_builder.vlm.annotator import VLMAnnotator
 from mkp_builder.vlm.verifier import VLMVerifier
 from mkp_builder.triplets import TripletExtractor
 from mkp_builder.chunker import SectionAwareChunker
-from mkp_builder.exporter import BookpackExporter, verify_bookpack_archive
+from mkp_builder.extract.claims import ClaimsExtractor
+from mkp_builder.synthesize.cluster import ClaimsClusterer
+from mkp_builder.synthesize.synthesize import RuleSynthesizer
+from mkp_builder.compile.guardrails import GuardrailsCompiler
+from mkp_builder.export.bookpack import BookpackExporter
+from mkp_builder.review import generate_golden_t1_rules
 from mkp_builder.tui import BuilderProgressTracker
 
 logger = logging.getLogger("mkp_builder")
 
 
 class BuilderPipeline:
-    """End-to-end processing pipeline for a single manual."""
+    """End-to-end processing pipeline for maritime documents & rules."""
 
     def __init__(
         self,
@@ -84,13 +94,26 @@ class BuilderPipeline:
             model=text_model,
         )
         self.chunker = SectionAwareChunker(max_tokens=max_tokens, overlap=overlap)
-        self.exporter = BookpackExporter()
+        self.claims_extractor = ClaimsExtractor(
+            client=self.ollama,
+            cache=self.cache,
+            model=text_model,
+        )
+        self.synthesizer = RuleSynthesizer(
+            client=self.ollama,
+            cache=self.cache,
+            model=text_model,
+        )
+        self.guardrails_compiler = GuardrailsCompiler()
+        self.exporter = BookpackExporter(out_dir=self.out_dir)
         self.tui = BuilderProgressTracker(headless=headless)
 
     def build_book(
         self,
         book_path: Path | str,
         book_id: str | None = None,
+        tier: Literal["T1", "T2", "T2.5", "T3"] = "T1",
+        region: str | None = None,
         profile: Literal["digital", "scanned", "mixed"] = "digital",
         lang: str = "en",
         title: str | None = None,
@@ -98,6 +121,8 @@ class BuilderPipeline:
         tessdata_path: str | None = None,
         skip_vlm: bool = False,
         skip_triplets: bool = False,
+        skip_rules: bool = False,
+        seed_golden_rules: bool = True,
     ) -> Path:
         start_time = time.time()
         book_path = Path(book_path)
@@ -108,14 +133,21 @@ class BuilderPipeline:
         assets_dir = book_out_dir / "assets"
         assets_dir.mkdir(parents=True, exist_ok=True)
 
-        self.logger.info("Starting build for book: %s (id: %s)", book_path.name, actual_book_id)
+        self.logger.info(
+            "Starting build for book: %s (id: %s, tier: %s, region: %s)",
+            book_path.name,
+            actual_book_id,
+            tier,
+            region,
+        )
 
         self.tui.start()
         self.tui.add_stage("parse", "1. Parsing Layout & Figures", total=100)
         self.tui.add_stage("vlm", "2. VLM Annotation & Verification", total=100)
         self.tui.add_stage("chunk", "3. Section-Aware Chunking", total=100)
         self.tui.add_stage("triplets", "4. Triplet Extraction (GraphRAG)", total=100)
-        self.tui.add_stage("export", "5. Packaging .bookpack.zip Archive", total=100)
+        self.tui.add_stage("rules", "5. Claims & Rules Pipeline", total=100)
+        self.tui.add_stage("export", "6. Signed Bookpack v0.3.0 Export", total=100)
 
         # 1. Parse Document
         parser = get_parser(
@@ -141,7 +173,7 @@ class BuilderPipeline:
         visual_assets_by_page: dict[int, list[VisualAsset]] = defaultdict(list)
         qa_review_items: list[QaReviewItem] = []
 
-        if (not skip_vlm or not skip_triplets) and (all_figures or doc.pages):
+        if (not skip_vlm or not skip_triplets or not skip_rules) and (all_figures or doc.pages):
             self.ollama.ensure_server()
 
         for idx, fig in enumerate(all_figures, start=1):
@@ -158,24 +190,36 @@ class BuilderPipeline:
             vlm_data = None
             if not skip_vlm:
                 # Annotation
-                vlm_data, hit = self.annotator.annotate(fig.image_bytes, img_sha)
-                if hit:
+                cached = self.annotator.is_cached(fig.image_bytes)
+                if cached:
                     self.tui.stats["vlm_cache_hits"] += 1
                 else:
                     self.tui.stats["vlm_api_calls"] += 1
 
-                # Verification
-                vlm_data, qa_item = self.verifier.verify(
-                    vlm_data=vlm_data,
+                vlm_data = self.annotator.annotate(
                     image_bytes=fig.image_bytes,
-                    image_sha256=img_sha,
-                    book_id=actual_book_id,
-                    image_path=fig_rel_path,
+                    caption=fig.caption,
+                    page_text=doc.pages[fig.page_number - 1].text_content if fig.page_number <= len(doc.pages) else "",
                 )
 
-                if qa_item:
-                    qa_review_items.append(qa_item)
-                    self.tui.stats["needs_review"] += 1
+                # 3-step Verification
+                v_res = self.verifier.verify(
+                    vlm_data=vlm_data,
+                    page_text=doc.pages[fig.page_number - 1].text_content if fig.page_number <= len(doc.pages) else "",
+                    image_bytes=fig.image_bytes,
+                )
+                vlm_data.verification = v_res
+
+                if v_res.needs_review:
+                    qa_review_items.append(
+                        QaReviewItem(
+                            book_id=actual_book_id,
+                            image_path=fig_rel_path,
+                            image_sha256=img_sha,
+                            diagram_type=vlm_data.diagram_type.value,
+                            reasons=v_res.issues,
+                        )
+                    )
 
             asset = VisualAsset(
                 image_path=fig_rel_path,
@@ -186,15 +230,21 @@ class BuilderPipeline:
             visual_assets_by_page[fig.page_number].append(asset)
             self.tui.update_stage("vlm", completed=idx)
 
-        # 3. Chunk Document
-        chunks = self.chunker.chunk_document(doc, visual_assets_by_page=visual_assets_by_page)
-        self.tui.stats["chunks"] = len(chunks)
+        self.tui.stats["needs_review"] = len(qa_review_items)
+
+        # 3. Chunking
+        self.tui.update_stage("chunk", completed=0, total=100)
+        chunks: list[ChunkRecord] = self.chunker.chunk_document(
+            doc=doc,
+            visual_assets_by_page=visual_assets_by_page,
+        )
         self.tui.update_stage("chunk", completed=100)
+        self.tui.stats["chunks"] = len(chunks)
 
         # 4. Triplet Extraction
+        self.tui.update_stage("triplets", completed=0, total=max(len(chunks), 1))
         triplets: list[TripletRecord] = []
         if not skip_triplets:
-            self.tui.update_stage("triplets", completed=0, total=len(chunks))
             for c_idx, c in enumerate(chunks, start=1):
                 c_triplets = self.triplet_extractor.extract_from_text(
                     text=c.text_content,
@@ -210,7 +260,48 @@ class BuilderPipeline:
 
         self.tui.stats["triplets"] = len(triplets)
 
-        # 5. Write local jsonl / metadata files
+        # 5. Claims, Clustering & Rule Synthesis
+        self.tui.update_stage("rules", completed=0, total=100)
+        claims: list[Claim] = []
+        clusters: list[Cluster] = []
+        rules: list[Rule] = []
+        guardrails_md = ""
+
+        if not skip_rules:
+            # Claims
+            self.tui.update_stage("rules", completed=25)
+            claims = self.claims_extractor.extract_from_chunks(chunks=chunks, tier=tier)
+            
+            # Clustering
+            self.tui.update_stage("rules", completed=50)
+            clusterer = ClaimsClusterer(book_id=actual_book_id)
+            clusters = clusterer.cluster_claims(claims=claims, tier=tier if tier != "T3" else "T1")
+
+            # Synthesis
+            self.tui.update_stage("rules", completed=75)
+            rules = self.synthesizer.synthesize_rules(
+                clusters=clusters,
+                claims=claims,
+                tier=tier if tier != "T3" else "T1",
+                region=region,
+            )
+
+            # Golden rules inclusion for T1 Base
+            if tier == "T1" and seed_golden_rules:
+                golden_rules = generate_golden_t1_rules(book_id=actual_book_id)
+                # deduplicate by rule_id
+                existing_ids = {r.rule_id for r in rules}
+                for gr in golden_rules:
+                    if gr.rule_id not in existing_ids:
+                        rules.append(gr)
+
+            # Compile Guardrails
+            guardrails_md = self.guardrails_compiler.compile(rules=rules, include_draft=True)
+            self.tui.update_stage("rules", completed=100)
+        else:
+            self.tui.update_stage("rules", completed=100)
+
+        # 6. Write local jsonl files
         self.tui.update_stage("export", completed=20)
         
         # Write chunks.jsonl
@@ -250,6 +341,23 @@ class BuilderPipeline:
             for t in triplets:
                 f.write(json.dumps(t.model_dump(), ensure_ascii=False) + "\n")
 
+        # Write claims.jsonl
+        claims_file = book_out_dir / "claims.jsonl"
+        with open(claims_file, "w", encoding="utf-8") as f:
+            for cl in claims:
+                f.write(json.dumps(cl.model_dump(), ensure_ascii=False) + "\n")
+
+        # Write rules.jsonl
+        rules_file = book_out_dir / "rules.jsonl"
+        with open(rules_file, "w", encoding="utf-8") as f:
+            for r in rules:
+                f.write(json.dumps(r.model_dump(), ensure_ascii=False) + "\n")
+
+        # Write guardrails.md
+        guardrails_file = book_out_dir / "guardrails.md"
+        with open(guardrails_file, "w", encoding="utf-8") as f:
+            f.write(guardrails_md)
+
         # Write qa_review_queue.jsonl
         qa_file = book_out_dir / "qa_review_queue.jsonl"
         with open(qa_file, "w", encoding="utf-8") as f:
@@ -274,38 +382,36 @@ class BuilderPipeline:
         with open(meta_file, "w", encoding="utf-8") as f:
             f.write(json.dumps(meta.model_dump(), ensure_ascii=False, indent=2))
 
-        # 6. Export .bookpack.zip archive
+        # 7. Export signed Bookpack v0.3.0 archive
         self.tui.update_stage("export", completed=60)
-        zip_path = self.exporter.export_archive(
-            book_dir=book_out_dir,
-            out_dir=self.out_dir,
+        zip_path = self.exporter.export(
             book_id=actual_book_id,
             title=doc.title,
-            lang=[lang],
-            pipeline_profile=profile,
-            pagination=doc.pagination,
+            chunks=chunks,
+            triplets=triplets,
+            claims=claims,
+            rules=rules,
+            guardrails_md=guardrails_md,
+            assets_dir=assets_dir,
+            tier=tier,
+            region=region,
         )
         self.tui.stats["archive_path"] = str(zip_path)
 
-        # Validate archive integrity
-        valid, issues = verify_bookpack_archive(zip_path)
-        if not valid:
-            self.logger.error("Bookpack archive validation failed: %s", issues)
-            raise RuntimeError(f"Exported bookpack archive integrity check failed: {issues}")
-        else:
-            self.logger.info("Bookpack archive integrity verified successfully (SHA-256 match).")
-
-        # 7. Write ingest_report.md
+        # 8. Write ingest_report.md
         duration = time.time() - start_time
         report_file = book_out_dir / "ingest_report.md"
         self._write_ingest_report(
             report_file=report_file,
             book_id=actual_book_id,
             title=doc.title,
+            tier=tier,
             pages=len(doc.pages),
             figures=len(all_figures),
             chunks=len(chunks),
             triplets=len(triplets),
+            claims=len(claims),
+            rules=len(rules),
             needs_review=len(qa_review_items),
             archive_path=str(zip_path),
             duration=duration,
@@ -316,8 +422,9 @@ class BuilderPipeline:
         self.tui.print_summary(actual_book_id, duration)
 
         self.logger.info(
-            "Build complete for %s in %.2fs. Archive: %s",
+            "Build complete for %s (tier=%s) in %.2fs. Archive: %s",
             actual_book_id,
+            tier,
             duration,
             zip_path,
         )
@@ -329,10 +436,13 @@ class BuilderPipeline:
         report_file: Path,
         book_id: str,
         title: str,
+        tier: str,
         pages: int,
         figures: int,
         chunks: int,
         triplets: int,
+        claims: int,
+        rules: int,
         needs_review: int,
         archive_path: str,
         duration: float,
@@ -340,13 +450,14 @@ class BuilderPipeline:
         nr_rate = (needs_review / max(figures, 1)) * 100.0
         gate_status = "PASS ✅" if nr_rate <= 5.0 else "WARNING ⚠️ (needs review > 5%)"
 
-        content = f"""# Ingestion Report — {book_id}
+        content = f"""# Ingestion Report — {book_id} (Tier: {tier})
 
 - **Title:** {title}
+- **Tier:** {tier}
 - **Date:** {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}
 - **Duration:** {duration:.2f} seconds
 - **Acceptance Gate (needs_review ≤ 5%):** {gate_status}
-- **Exported Archive:** `{archive_path}`
+- **Exported Archive:** `{archive_path}` (Signed Bookpack v0.3.0)
 
 ## Summary Metrics
 
@@ -356,18 +467,18 @@ class BuilderPipeline:
 | Extracted Figures | {figures} |
 | Generated Chunks | {chunks} |
 | Extracted Triplets | {triplets} |
+| Extracted Claims | {claims} |
+| Synthesized Rules | {rules} |
 | VLM Needs Review (QA Queue) | {needs_review} ({nr_rate:.1f}%) |
 | VLM Cache Hits | {self.tui.stats['vlm_cache_hits']} |
 | VLM API Calls | {self.tui.stats['vlm_api_calls']} |
 
 ## Artifact Files Inside Archive
-
-- `bookpack.json` (schema_version: "1.5", files_sha256 manifest)
-- `book_metadata.json`
-- `pages.jsonl`
-- `chunks.jsonl`
-- `triplets.jsonl`
-- `qa_review_queue.jsonl`
+- `manifest.yaml` (bookpack_version: "0.3.0", generation, compatibility, base/user hashes)
+- `checksums.sha256` + per-artifact sha256 (`base/chunks.sha256`, `base/rules.sha256`)
+- `signature.ed25519` (digital signature)
+- `base/` (chunks, triplets, claims, rules, guardrails.md)
+- `yacht/`, `voyage/`, `personal/` (stubs)
 - `assets/` ({figures} PNG figures)
 """
         with open(report_file, "w", encoding="utf-8") as f:
