@@ -223,22 +223,33 @@ python qa/demo_e2e.py
 
 ---
 
+## ☁️ RunPod Cloud Pipeline (Zero-Touch GPU Orchestration)
+
+Для тяжелой обработки реальных иллюстрированных книг с использованием флагманской мультимодальной модели **Qwen2.5-VL 32B** разработан модуль облачной оркестрации [`tools/runpod/`](file:///d:/Tasks/My/SIA/DB/Doc2Rag/tools/runpod):
+
+* **Zero-Touch автоматизация:** Поднимает или переиспользует под на **NVIDIA RTX 4090 / A5000 (24GB VRAM)**, автоматически находит шаблон `base_sia_mkp`, передает книги по прямому SCP и запускает конвейер.
+* **Auto-Stop & Защита баланса:** По завершении экспорта и скачивания готовых `.bookpack.zip` под **автоматически выключается через RunPod API**, останавливая тарификацию ($0/час).
+* **Локальное логирование:** Сессии фиксируются в `tools/runpod/logs/session_*.log` с сохранением метрик GPU, скорости генерации (t/s) и контекста ошибок.
+* **Документация и спецификация:**
+  * 📄 [`tools/runpod/AGENT_GUIDE.md`](file:///d:/Tasks/My/SIA/DB/Doc2Rag/tools/runpod/AGENT_GUIDE.md) — Исчерпывающее руководство для ИИ-агентов.
+  * 📄 [`tools/runpod/RUNPOD_TUI_PLAN.md`](file:///d:/Tasks/My/SIA/DB/Doc2Rag/tools/runpod/RUNPOD_TUI_PLAN.md) — Спецификация интерактивного Rich TUI дашборда и телеметрии.
+
+---
+
 ## 📂 Структура проекта
 
 ```
 Doc2Rag/
 ├── .planning/               # GSD-планирование (PROJECT.md, ROADMAP.md, REQUIREMENTS.md, STATE.md)
-│   ├── phase-0/             # Отчеты и скрипты PoC валидации
-│   ├── phase-1/             # Планы базового конвейера
-│   ├── phase-2/             # Планы триплетов и экспорта
-│   ├── phase-2.1/           # План конвейера правил и Bookpack v0.3
-│   ├── phase-3/             # План MCP-сервера (хранилище, WAL, 10 инструментов)
-│   ├── phase-4/             # Приемочный отчет (ACCEPTANCE.md, UAT.md)
-│   └── phase-5/             # План расширенного тестирования (Full Evaluation Spec v1.1)
 ├── ontology/                # Англоязычная онтология предметной области (YAML)
-│   ├── sia_ontology.yaml    # Домены, архетипы, телеметрия, действия, аварии
-│   ├── sia_relations.yaml   # Предикаты и отношения
-│   └── mapping.yaml         # Двуязычный словарь синонимов (EN & RU)
+├── tools/
+│   └── runpod/              # Облачная инфраструктура и автоматизация RunPod
+│       ├── .env.example     # Шаблон конфигурации и секретов
+│       ├── AGENT_GUIDE.md   # Руководство по работе с RunPod для ИИ-агента
+│       ├── RUNPOD_TUI_PLAN.md # Спецификация TUI-дашборда и авто-отключения
+│       ├── runpod_api.py    # Клиент GraphQL API (управление подами и биллингом)
+│       ├── runpod_manager.py # Менеджер статуса, скачивания и авто-останова
+│       └── run_build_32b.py # Автономный скрипт пайплайна на 32B VLM
 ├── qa/                      # Модули QA, бенчмарков и датасеты
 │   ├── golden_dataset.json  # 30 стратифицированных вопросов
 │   ├── golden_rules.json    # 15 верифицированных правил T1 с точными цитатами
@@ -269,3 +280,4 @@ Doc2Rag/
 * ✅ **Phase 3:** `mkp-server` 4-Tier Storage, WAL/Rollback (I0–I14) & 10 FastMCP Tools (8/8 задач PASS).
 * ✅ **Phase 4:** QA & Acceptance (100% PASS, 0% Hallucinations, 15/15 Инвариантов, `acceptance_report.md`).
 * ⏳ **Phase 5:** Full Evaluation & Quality Benchmark (Spec v1.1, 95–110 вопросов, Offline MCP Agent, Gemini LLM-as-a-Judge).
+

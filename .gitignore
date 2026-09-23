@@ -56,3 +56,15 @@ qa/reports/*.pdf
 .init_doc/
 init_doc/
 
+# Secrets & Local Environment
+.env
+.env.*
+!.env.example
+*.exe
+tools/runpod/logs/
+id_ed25519*
+id_rsa*
+*.pem
+*.key
+
+

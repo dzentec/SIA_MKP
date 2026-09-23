@@ -71,7 +71,7 @@ class VLMAnnotator:
                 model=self.model,
                 image_bytes=image_bytes,
                 format_json=True,
-                num_predict=512,
+                num_predict=2048,
             )
             parsed_json = json.loads(raw_response)
 

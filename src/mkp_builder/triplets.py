@@ -131,7 +131,7 @@ class TripletExtractor:
                     prompt=prompt,
                     model=self.model,
                     format_json=True,
-                    num_predict=512,
+                    num_predict=1024,
                 )
                 data = json.loads(response)
                 raw_triplets = data.get("triplets", [])

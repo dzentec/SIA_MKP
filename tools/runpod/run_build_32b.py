@@ -8,6 +8,7 @@ import time
 
 from mkp_builder.pipeline import BuilderPipeline
 
+
 def main() -> None:
     repo_root = Path(__file__).parent.resolve()
     source_dir = repo_root / ".init_doc" / "source_doc"
