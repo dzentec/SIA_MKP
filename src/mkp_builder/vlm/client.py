@@ -22,7 +22,7 @@ class OllamaClient:
         host: str = "http://127.0.0.1:11434",
         vlm_model: str = "qwen2.5vl:7b",
         text_model: str = "qwen2.5:7b",
-        timeout: float = 45.0,
+        timeout: float = 120.0,
         max_retries: int = 2,
         ollama_bin_path: str = r"D:\Ollama\ollama.exe",
         models_dir: str = r"D:\AI_models\ollama",

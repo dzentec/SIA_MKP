@@ -27,15 +27,19 @@ from mkp_server.storage import StorageManager
 
 
 def load_golden_dataset(qa_dir: Path | str | None = None) -> list[dict]:
-    """Load the 30 ground truth questions."""
+    """Load the ground truth dataset (golden_full_dataset.json or fallback)."""
     base = Path(qa_dir) if qa_dir else Path(__file__).parent
+    ds_full = base / "golden_full_dataset.json"
+    if ds_full.exists():
+        with open(ds_full, "r", encoding="utf-8") as f:
+            return json.load(f)
     ds_file = base / "golden_dataset.json"
     with open(ds_file, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
 def load_golden_rules(qa_dir: Path | str | None = None) -> list[Rule]:
-    """Load the 15 verified Golden Rules."""
+    """Load the verified Golden Rules."""
     base = Path(qa_dir) if qa_dir else Path(__file__).parent
     r_file = base / "golden_rules.json"
     with open(r_file, "r", encoding="utf-8") as f:
@@ -50,7 +54,11 @@ def build_golden_bookpack(
     rules: list[Rule],
 ) -> Path:
     """Build a complete, signed .bookpack.zip v0.3.0 for a given book from ground truth dataset."""
-    book_questions = [q for q in dataset if q["expected_book"] == book_id]
+    book_questions = [
+        q for q in dataset
+        if q.get("expected_book") == book_id
+        or (book_id in q.get("expected_books", []))
+    ]
     exporter = BookpackExporter(out_dir=out_dir)
 
     # 1. Chunks & Visual Assets
@@ -61,8 +69,14 @@ def build_golden_bookpack(
     dummy_png_bytes = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82"
 
     for q in book_questions:
-        page = q["expected_page"]
-        loc_ref = q["expected_location_ref"]
+        if book_id in q.get("expected_books", []):
+            b_idx = q["expected_books"].index(book_id)
+            page = q.get("expected_pages", [q.get("expected_page", 1)])[b_idx]
+            loc_ref = f"pdf:p{page}" if book_id == "dedekam_sail_trim" else f"epub:s{page}"
+        else:
+            page = q.get("expected_page", 1)
+            loc_ref = q.get("expected_location_ref", f"pdf:p{page}")
+
         chunk_id = f"{book_id}_p{page:03d}_c01"
         lang = q.get("lang", "en")
 
@@ -92,11 +106,11 @@ def build_golden_bookpack(
             )
 
         # Ground truth chunk text containing must_contain_terms
-        terms_snippet = " ".join(q["must_contain_terms"])
+        terms_snippet = " ".join(q.get("must_contain_terms", []))
         chunk_text = (
             f"Official Seamanship Manual — {book_id.replace('_', ' ').title()}, Page {page}.\n"
             f"Topic: {q['query']}.\n"
-            f"Detailed instruction: {terms_snippet}. Ensure proper trimming and safety procedures."
+            f"Detailed instruction: {terms_snippet}. Ensure proper trimming, navigation, and safety procedures."
         )
 
         chunks.append(

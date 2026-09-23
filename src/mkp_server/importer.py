@@ -196,11 +196,19 @@ class BookpackImporter:
                     else:
                         dst_g.write_text(new_g, encoding="utf-8")
 
-                # Other files (sha256, claims, etc.)
+                # Other files (claims, etc. excluding stale sha256)
                 for item in src_tier_dir.iterdir():
-                    if item.name not in ("chunks.jsonl", "rules.jsonl", "triplets.jsonl", "guardrails.md"):
+                    if item.name not in ("chunks.jsonl", "rules.jsonl", "triplets.jsonl", "guardrails.md") and not item.name.endswith(".sha256"):
                         if item.is_file():
                             shutil.copy2(item, dst_tier_dir / item.name)
+
+                # Regenerate per-artifact sha256 for merged layer files
+                from mkp_server.security import compute_file_sha256
+                for fname in ("chunks.jsonl", "rules.jsonl", "triplets.jsonl", "guardrails.md"):
+                    fpath = dst_tier_dir / fname
+                    if fpath.is_file():
+                        h = compute_file_sha256(fpath)
+                        (dst_tier_dir / f"{fname}.sha256").write_text(f"{h}  {fname}\n", encoding="utf-8")
 
         # 3. Copy visual assets
         src_assets = extracted_dir / "assets"

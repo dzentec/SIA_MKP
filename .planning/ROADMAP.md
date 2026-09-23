@@ -10,7 +10,7 @@
 | 2.1 | mkp-builder Rules & Bookpack v0.3 | Онтология + Claims + Кластеризация + Синтез правил + Guardrails + Bookpack v0.3.0 + Ed25519 | REQ-R01..06, REQ-B07 | 6 (✅ PASS) |
 | 3 | mkp-server | 4-уровневое хранилище + импорт дельт v0.3.0 + WAL/Rollback (I0–I14) + индексы + 10 MCP-инструментов | REQ-S01..13 | 7 (✅ PASS) |
 | 4 | QA & Acceptance | Сквозной прогон Golden Dataset + 15+ эталонных правил + тест Rollback/WAL | REQ-QA-01, QA-02 | 5 (✅ PASS) |
-| 5 | Full Evaluation & Quality Benchmark | Полный бенчмарк 2-х книг (95–110 вопросов, 7 блоков), Offline MCP Agent (Qwen), Baseline A/B/C, Gemini LLM-as-a-Judge (M1–M8) | REQ-EVAL-01..06 | 8 |
+| 5 | Full Evaluation & Quality Benchmark | Полный бенчмарк 2-х книг (95–110 вопросов, 7 блоков), Offline MCP Agent (Qwen), Baseline A/B/C, Gemini LLM-as-a-Judge (M1–M8) | REQ-EVAL-01..06 | 8 (✅ PASS) |
 
 ---
 
@@ -83,7 +83,7 @@
 
 ---
 
-## Phase 5: Full Evaluation & Quality Benchmark
+## Phase 5: Full Evaluation & Quality Benchmark (✅ Завершено)
 **Goal:** Реализация полноценного тестового стенда по спецификации **MKP-R Full Evaluation Spec v1.1**: расширенный датасет из 95–110 вопросов (7 блоков), автономный оффлайн-агент (Qwen2.5) с вызовом 10 MCP-инструментов, замеры Baseline A/B/C, проверка Data Leakage, судейство LLM-as-a-Judge (Gemini API), расчет 8 активных метрик (M1–M8) с доверительными интервалами (95% CI), регрессионный пул и автогенерация детального отчета `qa/reports/full_eval_report.md`.  
 **Mode:** standard / ai-eval  
 **Duration:** 2–3 дня  

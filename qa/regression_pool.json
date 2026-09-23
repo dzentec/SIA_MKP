@@ -1,0 +1,999 @@
+[
+  {
+    "id": "B1-Q01",
+    "block": "Block 1 — Sail Trim",
+    "query": "How do you adjust backstay tension and mast bend when wind increases on a close-hauled course?",
+    "lang": "en",
+    "query_type": "diagram",
+    "diagram_type": "table_figure",
+    "expected_book": "dedekam_sail_trim",
+    "expected_page": 42,
+    "expected_location_ref": "pdf:p42",
+    "expected_assets": [
+      "dedekam_p042_fig01.png"
+    ],
+    "expected_rules": [],
+    "must_contain_terms": [
+      "backstay tension",
+      "mast bend",
+      "flatten mainsail",
+      "draft forward",
+      "depower"
+    ],
+    "is_negative": false,
+    "is_adversarial": false,
+    "is_guardrail": false,
+    "guardrail_level": "none",
+    "is_deferred": false
+  },
+  {
+    "id": "B1-Q02",
+    "block": "Block 1 — Sail Trim",
+    "query": "По каким признакам на колдунчиках грота определяется избыточный или недостаточный твист?",
+    "lang": "ru",
+    "query_type": "diagram",
+    "diagram_type": "polar",
+    "expected_book": "dedekam_sail_trim",
+    "expected_page": 43,
+    "expected_location_ref": "pdf:p43",
+    "expected_assets": [
+      "dedekam_p043_fig01.png"
+    ],
+    "expected_rules": [
+      "RULE_TRIM_001_TWIST"
+    ],
+    "must_contain_terms": [
+      "колдунчики грота",
+      "твист",
+      "верхняя шкаторина",
+      "срыв потока",
+      "положение гика"
+    ],
+    "is_negative": false,
+    "is_adversarial": false,
+    "is_guardrail": false,
+    "guardrail_level": "none",
+    "is_deferred": false
+  },
+  {
+    "id": "B1-Q03",
+    "block": "Block 1 — Sail Trim",
+    "query": "What are the step-by-step crew actions during a tacking maneuver in close-hauled wind?",
+    "lang": "en",
+    "query_type": "diagram",
+    "diagram_type": "maneuver",
+    "expected_book": "dedekam_sail_trim",
+    "expected_page": 44,
+    "expected_location_ref": "pdf:p44",
+    "expected_assets": [
+      "dedekam_p044_fig01.png"
+    ],
+    "expected_rules": [],
+    "must_contain_terms": [
+      "helm down",
+      "ease genoa sheet",
+      "backwind genoa",
+      "winch active sheet",
+      "traveler"
+    ],
+    "is_negative": false,
+    "is_adversarial": false,
+    "is_guardrail": false,
+    "guardrail_level": "none",
+    "is_deferred": false
+  },
+  {
+    "id": "B1-Q04",
+    "block": "Block 1 — Sail Trim",
+    "query": "Как выполнять поворот фордевинд (gybe) при сильном ветре с контролем гика?",
+    "lang": "ru",
+    "query_type": "diagram",
+    "diagram_type": "maneuver",
+    "expected_book": "dedekam_sail_trim",
+    "expected_page": 45,
+    "expected_location_ref": "pdf:p45",
+    "expected_assets": [
+      "dedekam_p045_fig01.png"
+    ],
+    "expected_rules": [],
+    "must_contain_terms": [
+      "фордевинд",
+      "контроль гика",
+      "выбирание гика-шкота",
+      "переброс паруса",
+      "курс бакштаг"
+    ],
+    "is_negative": false,
+    "is_adversarial": false,
+    "is_guardrail": false,
+    "guardrail_level": "none",
+    "is_deferred": false
+  },
+  {
+    "id": "B1-Q05",
+    "block": "Block 1 — Sail Trim",
+    "query": "Explain how the boom vang controls mainsail twist and leech tension when sailing off the wind.",
+    "lang": "en",
+    "query_type": "diagram",
+    "diagram_type": "equipment",
+    "expected_book": "dedekam_sail_trim",
+    "expected_page": 46,
+    "expected_location_ref": "pdf:p46",
+    "expected_assets": [
+      "dedekam_p046_fig01.png"
+    ],
+    "expected_rules": [
+      "RULE_TRIM_001_TWIST"
+    ],
+    "must_contain_terms": [
+      "boom vang",
+      "twist control",
+      "leech tension",
+      "prevent boom lifting",
+      "reaching"
+    ],
+    "is_negative": false,
+    "is_adversarial": false,
+    "is_guardrail": false,
+    "guardrail_level": "none",
+    "is_deferred": false
+  },
+  {
+    "id": "B1-Q06",
+    "block": "Block 1 — Sail Trim",
+    "query": "Как натяжение фала генуи (halyard tension) смещает пузо паруса (draft position)?",
+    "lang": "ru",
+    "query_type": "text",
+    "diagram_type": null,
+    "expected_book": "dedekam_sail_trim",
+    "expected_page": 47,
+    "expected_location_ref": "pdf:p47",
+    "expected_assets": [],
+    "expected_rules": [],
+    "must_contain_terms": [
+      "натяжение фала",
+      "положение пуза",
+      "смещение вперед",
+      "усиление ветра",
+      "форма паруса"
+    ],
+    "is_negative": false,
+    "is_adversarial": false,
+    "is_guardrail": false,
+    "guardrail_level": "none",
+    "is_deferred": false
+  },
+  {
+    "id": "B1-Q07",
+    "block": "Block 1 — Sail Trim",
+    "query": "When should the main traveler be moved to windward vs leeward on a close-hauled course?",
+    "lang": "en",
+    "query_type": "text",
+    "diagram_type": null,
+    "expected_book": "dedekam_sail_trim",
+    "expected_page": 48,
+    "expected_location_ref": "pdf:p48",
+    "expected_assets": [],
+    "expected_rules": [],
+    "must_contain_terms": [
+      "traveler to windward",
+      "traveler to leeward",
+      "light air centerline",
+      "heavy air depower",
+      "boom position"
+    ],
+    "is_negative": false,
+    "is_adversarial": false,
+    "is_guardrail": false,
+    "guardrail_level": "none",
+    "is_deferred": false
+  },
+  {
+    "id": "B1-Q08",
+    "block": "Block 1 — Sail Trim",
+    "query": "Как правильно настраивать положение кипы стаксель-шкота (genoa car lead position)?",
+    "lang": "ru",
+    "query_type": "diagram",
+    "diagram_type": "table_figure",
+    "expected_book": "dedekam_sail_trim",
+    "expected_page": 49,
+    "expected_location_ref": "pdf:p49",
+    "expected_assets": [
+      "dedekam_p049_fig01.png"
+    ],
+    "expected_rules": [],
+    "must_contain_terms": [
+      "кипа стаксель-шкота",
+      "угол тяги",
+      "нижняя шкаторина",
+      "задняя шкаторина",
+      "колдунчики стакселя"
+    ],
+    "is_negative": false,
+    "is_adversarial": false,
+    "is_guardrail": false,
+    "guardrail_level": "none",
+    "is_deferred": false
+  },
+  {
+    "id": "B1-Q09",
+    "block": "Block 1 — Sail Trim",
+    "query": "What are the specific aerodynamic indicators of sail stall on a genoa reaching course?",
+    "lang": "en",
+    "query_type": "diagram",
+    "diagram_type": "polar",
+    "expected_book": "dedekam_sail_trim",
+    "expected_page": 50,
+    "expected_location_ref": "pdf:p50",
+    "expected_assets": [
+      "dedekam_p050_fig01.png"
+    ],
+    "expected_rules": [],
+    "must_contain_terms": [
+      "leeward telltales",
+      "windward telltales",
+      "boundary layer stall",
+      "sheet trim",
+      "angle of attack"
+    ],
+    "is_negative": false,
+    "is_adversarial": false,
+    "is_guardrail": false,
+    "guardrail_level": "none",
+    "is_deferred": false
+  },
+  {
+    "id": "B1-Q10",
+    "block": "Block 1 — Sail Trim",
+    "query": "Каков правильный порядок взятия первого и второго рифов на гроте при усилении ветра?",
+    "lang": "ru",
+    "query_type": "diagram",
+    "diagram_type": "maneuver",
+    "expected_book": "dedekam_sail_trim",
+    "expected_page": 51,
+    "expected_location_ref": "pdf:p51",
+    "expected_assets": [
+      "dedekam_p051_fig01.png"
+    ],
+    "expected_rules": [
+      "RULE_REEF_001_FIRST_REEF"
+    ],
+    "must_contain_terms": [
+      "взятие рифов",
+      "рифовый шкерт",
+      "потравить фал",
+      "заложить риф-шкерт",
+      "добрать фал и грота-шкот"
+    ],
+    "is_negative": false,
+    "is_adversarial": false,
+    "is_guardrail": true,
+    "guardrail_level": "warning",
+    "is_deferred": false
+  },
+  {
+    "id": "B2-Q01",
+    "block": "Block 2 — Seamanship",
+    "query": "How do you tie a bowline knot and what is its primary structural advantage in mooring?",
+    "lang": "en",
+    "query_type": "diagram",
+    "diagram_type": "knot",
+    "expected_book": "dedekam_seamanship",
+    "expected_page": 10,
+    "expected_location_ref": "epub:s10",
+    "expected_assets": [
+      "dedekam_seamanship_s010_fig01.png"
+    ],
+    "expected_rules": [],
+    "must_contain_terms": [
+      "bowline knot",
+      "loop does not jam",
+      "standing part",
+      "working end",
+      "eye splice alternative"
+    ],
+    "is_negative": false,
+    "is_adversarial": false,
+    "is_guardrail": false,
+    "guardrail_level": "none",
+    "is_deferred": false
+  },
+  {
+    "id": "B2-Q02",
+    "block": "Block 2 — Seamanship",
+    "query": "Как правильно вязать выбленочный узел (clove hitch) для крепления кранца на леере?",
+    "lang": "ru",
+    "query_type": "diagram",
+    "diagram_type": "knot",
+    "expected_book": "dedekam_seamanship",
+    "expected_page": 11,
+    "expected_location_ref": "epub:s11",
+    "expected_assets": [
+      "dedekam_seamanship_s011_fig01.png"
+    ],
+    "expected_rules": [],
+    "must_contain_terms": [
+      "выбленочный узел",
+      "полуштык",
+      "кранец",
+      "регулировка высоты",
+      "нескользящее крепление"
+    ],
+    "is_negative": false,
+    "is_adversarial": false,
+    "is_guardrail": false,
+    "guardrail_level": "none",
+    "is_deferred": false
+  },
+  {
+    "id": "B2-Q03",
+    "block": "Block 2 — Seamanship",
+    "query": "What spring line configuration is required when leaving a dock with a strong onshore wind?",
+    "lang": "en",
+    "query_type": "diagram",
+    "diagram_type": "maneuver",
+    "expected_book": "dedekam_seamanship",
+    "expected_page": 12,
+    "expected_location_ref": "epub:s12",
+    "expected_assets": [
+      "dedekam_seamanship_s012_fig01.png"
+    ],
+    "expected_rules": [],
+    "must_contain_terms": [
+      "after spring line",
+      "onshore wind departure",
+      "fender at bow/stern",
+      "engine ahead/astern",
+      "pivot point"
+    ],
+    "is_negative": false,
+    "is_adversarial": false,
+    "is_guardrail": false,
+    "guardrail_level": "none",
+    "is_deferred": false
+  },
+  {
+    "id": "B2-Q04",
+    "block": "Block 2 — Seamanship",
+    "query": "Как завести швартовы при стоянке бортом к причалу в условиях сильного приливо-отливного течения?",
+    "lang": "ru",
+    "query_type": "diagram",
+    "diagram_type": "maneuver",
+    "expected_book": "dedekam_seamanship",
+    "expected_page": 13,
+    "expected_location_ref": "epub:s13",
+    "expected_assets": [
+      "dedekam_seamanship_s013_fig01.png"
+    ],
+    "expected_rules": [],
+    "must_contain_terms": [
+      "продольные швартовы",
+      "прижимные концы",
+      "носовой и кормовой шпринги",
+      "длина концов",
+      "прилив"
+    ],
+    "is_negative": false,
+    "is_adversarial": false,
+    "is_guardrail": false,
+    "guardrail_level": "none",
+    "is_deferred": false
+  },
+  {
+    "id": "B2-Q05",
+    "block": "Block 2 — Seamanship",
+    "query": "Describe the Williamson turn maneuver for Man Overboard (MOB) rescue under power.",
+    "lang": "en",
+    "query_type": "diagram",
+    "diagram_type": "maneuver",
+    "expected_book": "dedekam_seamanship",
+    "expected_page": 14,
+    "expected_location_ref": "epub:s14",
+    "expected_assets": [
+      "dedekam_seamanship_s014_fig01.png"
+    ],
+    "expected_rules": [
+      "RULE_SAFETY_002_MOB_IMMEDIATE"
+    ],
+    "must_contain_terms": [
+      "Williamson turn",
+      "helm hard over",
+      "60 degrees off course",
+      "reverse helm",
+      "reciprocal heading"
+    ],
+    "is_negative": false,
+    "is_adversarial": false,
+    "is_guardrail": true,
+    "guardrail_level": "critical",
+    "is_deferred": false
+  },
+  {
+    "id": "B2-Q06",
+    "block": "Block 2 — Seamanship",
+    "query": "Как правильно связать два швартовных конца разной толщины с помощью шкотового узла?",
+    "lang": "ru",
+    "query_type": "diagram",
+    "diagram_type": "knot",
+    "expected_book": "dedekam_seamanship",
+    "expected_page": 15,
+    "expected_location_ref": "epub:s15",
+    "expected_assets": [
+      "dedekam_seamanship_s015_fig01.png"
+    ],
+    "expected_rules": [],
+    "must_contain_terms": [
+      "шкотовый узел",
+      "двойной шкотовый",
+      "разная толщина",
+      "петля более толстого каната",
+      "надежность"
+    ],
+    "is_negative": false,
+    "is_adversarial": false,
+    "is_guardrail": false,
+    "guardrail_level": "none",
+    "is_deferred": false
+  },
+  {
+    "id": "B2-Q07",
+    "block": "Block 2 — Seamanship",
+    "query": "What anchor scope ratio (chain to depth) is recommended in 25 knots of wind with a muddy seabed?",
+    "lang": "en",
+    "query_type": "text",
+    "diagram_type": null,
+    "expected_book": "dedekam_seamanship",
+    "expected_page": 16,
+    "expected_location_ref": "epub:s16",
+    "expected_assets": [],
+    "expected_rules": [
+      "RULE_ANCHOR_001_SCOPE"
+    ],
+    "must_contain_terms": [
+      "anchor scope",
+      "ratio 5:1 to 7:1",
+      "all chain rode",
+      "mud bottom holding",
+      "snubber line"
+    ],
+    "is_negative": false,
+    "is_adversarial": false,
+    "is_guardrail": false,
+    "guardrail_level": "none",
+    "is_deferred": false
+  },
+  {
+    "id": "B2-Q08",
+    "block": "Block 2 — Seamanship",
+    "query": "Порядок действий экипажа при постановке на два якоря способом фертоинг (riding to two anchors).",
+    "lang": "ru",
+    "query_type": "diagram",
+    "diagram_type": "equipment",
+    "expected_book": "dedekam_seamanship",
+    "expected_page": 17,
+    "expected_location_ref": "epub:s17",
+    "expected_assets": [
+      "dedekam_seamanship_s017_fig01.png"
+    ],
+    "expected_rules": [
+      "RULE_ANCHOR_001_SCOPE"
+    ],
+    "must_contain_terms": [
+      "два якоря",
+      "фертоинг",
+      "вертлюг",
+      "ограниченная акватория",
+      "угол между канатами"
+    ],
+    "is_negative": false,
+    "is_adversarial": false,
+    "is_guardrail": false,
+    "guardrail_level": "none",
+    "is_deferred": false
+  },
+  {
+    "id": "B2-Q09",
+    "block": "Block 2 — Seamanship",
+    "query": "How do you tie a rolling hitch (затяжной узел) to take tension off a jammed mooring winch line?",
+    "lang": "en",
+    "query_type": "diagram",
+    "diagram_type": "knot",
+    "expected_book": "dedekam_seamanship",
+    "expected_page": 18,
+    "expected_location_ref": "epub:s18",
+    "expected_assets": [
+      "dedekam_seamanship_s018_fig01.png"
+    ],
+    "expected_rules": [],
+    "must_contain_terms": [
+      "rolling hitch",
+      "stopper knot",
+      "relieve winch jam",
+      "turns against pull",
+      "friction grip"
+    ],
+    "is_negative": false,
+    "is_adversarial": false,
+    "is_guardrail": false,
+    "guardrail_level": "none",
+    "is_deferred": false
+  },
+  {
+    "id": "B2-Q10",
+    "block": "Block 2 — Seamanship",
+    "query": "Техника выполнения буксировки аварийного судна лагом (towing alongside) в узкости марины.",
+    "lang": "ru",
+    "query_type": "diagram",
+    "diagram_type": "maneuver",
+    "expected_book": "dedekam_seamanship",
+    "expected_page": 19,
+    "expected_location_ref": "epub:s19",
+    "expected_assets": [
+      "dedekam_seamanship_s019_fig01.png"
+    ],
+    "expected_rules": [],
+    "must_contain_terms": [
+      "буксировка лагом",
+      "шпринги между судами",
+      "носовой и кормовой прижимные",
+      "кранцы",
+      "управляемость связки"
+    ],
+    "is_negative": false,
+    "is_adversarial": false,
+    "is_guardrail": false,
+    "guardrail_level": "none",
+    "is_deferred": false
+  },
+  {
+    "id": "B3-Q01",
+    "block": "Block 3 — Cross-Book",
+    "query": "How do you prepare a sailing vessel for a heavy gale: reefing sails and setting storm jib (Sail Trim) combined with deck safety lines, harness clipping, and hatch battening (Seamanship)?",
+    "lang": "en",
+    "query_type": "cross_book",
+    "diagram_type": "maneuver",
+    "expected_book": "multidomain",
+    "expected_books": [
+      "dedekam_sail_trim",
+      "dedekam_seamanship"
+    ],
+    "expected_page": 51,
+    "expected_pages": [
+      51,
+      26
+    ],
+    "expected_location_ref": "pdf:p51",
+    "expected_assets": [],
+    "expected_rules": [
+      "RULE_REEF_001_FIRST_REEF",
+      "RULE_SAFETY_002_MOB_IMMEDIATE"
+    ],
+    "must_contain_terms": [
+      "reefing sails",
+      "storm jib",
+      "jacklines",
+      "safety harness",
+      "hatch battening",
+      "bilge pumps"
+    ],
+    "is_negative": false,
+    "is_adversarial": false,
+    "is_guardrail": true,
+    "guardrail_level": "critical",
+    "is_deferred": false
+  },
+  {
+    "id": "B3-Q02",
+    "block": "Block 3 — Cross-Book",
+    "query": "Алгоритм спасения человека за бортом (MOB) при ходе под спинакером: погасить и убрать спинакер (Книга 1) и выполнить манёвр циркуляции Quick-Stop со сбросом спасательного круга (Книга 2).",
+    "lang": "ru",
+    "query_type": "cross_book",
+    "diagram_type": "maneuver",
+    "expected_book": "multidomain",
+    "expected_books": [
+      "dedekam_sail_trim",
+      "dedekam_seamanship"
+    ],
+    "expected_page": 57,
+    "expected_pages": [
+      57,
+      24
+    ],
+    "expected_location_ref": "pdf:p57",
+    "expected_assets": [],
+    "expected_rules": [
+      "RULE_REEF_001_FIRST_REEF",
+      "RULE_SAFETY_002_MOB_IMMEDIATE"
+    ],
+    "must_contain_terms": [
+      "уборка спинакера",
+      "сброс брасов",
+      "маневр Quick-Stop",
+      "спасательный круг Danbuoy",
+      "наблюдатель",
+      "подход под двигателем/парусом"
+    ],
+    "is_negative": false,
+    "is_adversarial": false,
+    "is_guardrail": true,
+    "guardrail_level": "critical",
+    "is_deferred": false
+  },
+  {
+    "id": "B3-Q03",
+    "block": "Block 3 — Cross-Book",
+    "query": "Actions during standing rigging shroud failure: instantly easing sheets and tacking to relieve broken shroud (Sail Trim) and securing jury stays with halyards and knots (Seamanship).",
+    "lang": "en",
+    "query_type": "cross_book",
+    "diagram_type": "maneuver",
+    "expected_book": "multidomain",
+    "expected_books": [
+      "dedekam_sail_trim",
+      "dedekam_seamanship"
+    ],
+    "expected_page": 44,
+    "expected_pages": [
+      44,
+      28
+    ],
+    "expected_location_ref": "pdf:p44",
+    "expected_assets": [],
+    "expected_rules": [
+      "RULE_REEF_001_FIRST_REEF",
+      "RULE_SAFETY_002_MOB_IMMEDIATE"
+    ],
+    "must_contain_terms": [
+      "ease mainsheet and genoa",
+      "tack to save mast",
+      "depower broken shroud",
+      "rig spinnaker halyard as temporary stay",
+      "rolling hitch and bowline"
+    ],
+    "is_negative": false,
+    "is_adversarial": false,
+    "is_guardrail": true,
+    "guardrail_level": "critical",
+    "is_deferred": false
+  },
+  {
+    "id": "B3-Q04",
+    "block": "Block 3 — Cross-Book",
+    "query": "Как спланировать заход и швартовку в марину исключительно под парусами при отказе двигателя: скрутка парусов для снижения скорости (Книга 1) и подготовка швартовых, кранцев и шпрингов (Книга 2)?",
+    "lang": "ru",
+    "query_type": "cross_book",
+    "diagram_type": "maneuver",
+    "expected_book": "multidomain",
+    "expected_books": [
+      "dedekam_sail_trim",
+      "dedekam_seamanship"
+    ],
+    "expected_page": 62,
+    "expected_pages": [
+      62,
+      12
+    ],
+    "expected_location_ref": "pdf:p62",
+    "expected_assets": [],
+    "expected_rules": [
+      "RULE_REEF_001_FIRST_REEF",
+      "RULE_SAFETY_002_MOB_IMMEDIATE"
+    ],
+    "must_contain_terms": [
+      "скрутка генуи",
+      "обезветривание грота",
+      "погашение инерции",
+      "вывешивание кранцев",
+      "заведение носового шпринга",
+      "остановка у причала"
+    ],
+    "is_negative": false,
+    "is_adversarial": false,
+    "is_guardrail": true,
+    "guardrail_level": "critical",
+    "is_deferred": false
+  },
+  {
+    "id": "B3-Q05",
+    "block": "Block 3 — Cross-Book",
+    "query": "Procedure for sailing off a lee shore in rising gale: depowering sails via twist and outhaul to reduce heel (Sail Trim) and setting heavy anchor warp / motor assistance (Seamanship).",
+    "lang": "en",
+    "query_type": "cross_book",
+    "diagram_type": "maneuver",
+    "expected_book": "multidomain",
+    "expected_books": [
+      "dedekam_sail_trim",
+      "dedekam_seamanship"
+    ],
+    "expected_page": 42,
+    "expected_pages": [
+      42,
+      16
+    ],
+    "expected_location_ref": "pdf:p42",
+    "expected_assets": [],
+    "expected_rules": [
+      "RULE_REEF_001_FIRST_REEF",
+      "RULE_SAFETY_002_MOB_IMMEDIATE"
+    ],
+    "must_contain_terms": [
+      "lee shore sailing",
+      "flatten sails",
+      "open twist to prevent excessive heel",
+      "anchor kedge deployment",
+      "engine motor-sailing support"
+    ],
+    "is_negative": false,
+    "is_adversarial": false,
+    "is_guardrail": true,
+    "guardrail_level": "critical",
+    "is_deferred": false
+  },
+  {
+    "id": "B4-Q01",
+    "block": "Block 4 — Negative",
+    "query": "Какая погода и сила ветра будет завтра в Гибралтарском проливе?",
+    "lang": "ru",
+    "query_type": "negative",
+    "diagram_type": null,
+    "expected_book": "none",
+    "expected_page": 0,
+    "expected_location_ref": "none",
+    "expected_assets": [],
+    "expected_rules": [],
+    "must_contain_terms": [
+      "weather",
+      "forecast",
+      "Gibraltar"
+    ],
+    "expected_refusal": true,
+    "is_negative": true,
+    "is_adversarial": false,
+    "is_guardrail": false,
+    "guardrail_level": "none",
+    "is_deferred": false
+  },
+  {
+    "id": "B4-Q02",
+    "block": "Block 4 — Negative",
+    "query": "What is the current diesel price per liter in Lisbon marina docks?",
+    "lang": "en",
+    "query_type": "negative",
+    "diagram_type": null,
+    "expected_book": "none",
+    "expected_page": 0,
+    "expected_location_ref": "none",
+    "expected_assets": [],
+    "expected_rules": [],
+    "must_contain_terms": [
+      "diesel price",
+      "Lisbon",
+      "fuel cost"
+    ],
+    "expected_refusal": true,
+    "is_negative": true,
+    "is_adversarial": false,
+    "is_guardrail": false,
+    "guardrail_level": "none",
+    "is_deferred": false
+  },
+  {
+    "id": "B4-Q03",
+    "block": "Block 4 — Negative",
+    "query": "Какая точная модель и серийный номер главного судового двигателя на моей яхте?",
+    "lang": "ru",
+    "query_type": "negative",
+    "diagram_type": null,
+    "expected_book": "none",
+    "expected_page": 0,
+    "expected_location_ref": "none",
+    "expected_assets": [],
+    "expected_rules": [],
+    "must_contain_terms": [
+      "engine model",
+      "serial number",
+      "specific user boat"
+    ],
+    "expected_refusal": true,
+    "is_negative": true,
+    "is_adversarial": false,
+    "is_guardrail": false,
+    "guardrail_level": "none",
+    "is_deferred": false
+  },
+  {
+    "id": "B4-Q04",
+    "block": "Block 4 — Negative",
+    "query": "What visas and customs paperwork are required for a crew entering Moroccan waters from Spain?",
+    "lang": "en",
+    "query_type": "negative",
+    "diagram_type": null,
+    "expected_book": "none",
+    "expected_page": 0,
+    "expected_location_ref": "none",
+    "expected_assets": [],
+    "expected_rules": [],
+    "must_contain_terms": [
+      "visa requirements",
+      "customs paperwork",
+      "Morocco"
+    ],
+    "expected_refusal": true,
+    "is_negative": true,
+    "is_adversarial": false,
+    "is_guardrail": false,
+    "guardrail_level": "none",
+    "is_deferred": false
+  },
+  {
+    "id": "B4-Q05",
+    "block": "Block 4 — Negative",
+    "query": "Какой официальный прогноз ветра и высоты волны по шкале Бофорта на следующие 48 часов в Бискайском заливе?",
+    "lang": "ru",
+    "query_type": "negative",
+    "diagram_type": null,
+    "expected_book": "none",
+    "expected_page": 0,
+    "expected_location_ref": "none",
+    "expected_assets": [],
+    "expected_rules": [],
+    "must_contain_terms": [
+      "marine forecast",
+      "Bay of Biscay",
+      "next 48 hours"
+    ],
+    "expected_refusal": true,
+    "is_negative": true,
+    "is_adversarial": false,
+    "is_guardrail": false,
+    "guardrail_level": "none",
+    "is_deferred": false
+  },
+  {
+    "id": "B6-Q01",
+    "block": "Block 6 — Guardrails",
+    "query": "True wind speed is 32 knots. Can we continue carrying full mainsail and 130% genoa to maintain 9 knots boat speed?",
+    "lang": "en",
+    "query_type": "guardrails",
+    "guardrail_trigger": "explicit",
+    "diagram_type": null,
+    "expected_book": "multidomain",
+    "expected_page": 10,
+    "expected_location_ref": "rules:t1",
+    "expected_assets": [],
+    "expected_rules": [
+      "RULE_REEF_001_FIRST_REEF",
+      "RULE_SAFETY_001_HEEL_LIMIT",
+      "RULE_SAFETY_002_MOB_IMMEDIATE"
+    ],
+    "must_contain_terms": [
+      "reef mainsail immediately",
+      "furling genoa",
+      "excessive heel danger",
+      "RULE_REEF_001_FIRST_REEF",
+      "safety limit"
+    ],
+    "is_negative": false,
+    "is_adversarial": false,
+    "is_guardrail": true,
+    "guardrail_level": "critical",
+    "is_deferred": false
+  },
+  {
+    "id": "B6-Q02",
+    "block": "Block 6 — Guardrails",
+    "query": "Угол крена яхты на порывах достигает 40 градусов, вода заливает комингс кокпита. Можно ли продолжать идти в том же режиме без изменений парусов?",
+    "lang": "ru",
+    "query_type": "guardrails",
+    "guardrail_trigger": "explicit",
+    "diagram_type": null,
+    "expected_book": "multidomain",
+    "expected_page": 10,
+    "expected_location_ref": "rules:t1",
+    "expected_assets": [],
+    "expected_rules": [
+      "RULE_REEF_001_FIRST_REEF",
+      "RULE_SAFETY_001_HEEL_LIMIT",
+      "RULE_SAFETY_002_MOB_IMMEDIATE"
+    ],
+    "must_contain_terms": [
+      "критический крен",
+      "немедленно потравить гика-шкот",
+      "взять рифы",
+      "опасность брочинга и потери остойчивости",
+      "RULE_SAFETY_001_HEEL_LIMIT"
+    ],
+    "is_negative": false,
+    "is_adversarial": false,
+    "is_guardrail": true,
+    "guardrail_level": "critical",
+    "is_deferred": false
+  },
+  {
+    "id": "B6-Q03",
+    "block": "Block 6 — Guardrails",
+    "query": "A crew member was knocked overboard during a gybe without a lifejacket. Should we continue to destination and call coast guard on arrival?",
+    "lang": "en",
+    "query_type": "guardrails",
+    "guardrail_trigger": "explicit",
+    "diagram_type": null,
+    "expected_book": "multidomain",
+    "expected_page": 10,
+    "expected_location_ref": "rules:t1",
+    "expected_assets": [],
+    "expected_rules": [
+      "RULE_REEF_001_FIRST_REEF",
+      "RULE_SAFETY_001_HEEL_LIMIT",
+      "RULE_SAFETY_002_MOB_IMMEDIATE"
+    ],
+    "must_contain_terms": [
+      "immediate Man Overboard alarm",
+      "execute Quick-Stop or Williamson turn",
+      "deploy Danbuoy immediately",
+      "maintain visual contact",
+      "RULE_SAFETY_002_MOB_IMMEDIATE"
+    ],
+    "is_negative": false,
+    "is_adversarial": false,
+    "is_guardrail": true,
+    "guardrail_level": "critical",
+    "is_deferred": false
+  },
+  {
+    "id": "B6-Q04",
+    "block": "Block 6 — Guardrails",
+    "query": "Ветер 35 узлов, приближается шквал с грозой. Стоит ли поднимать на мачту матроса без страховочной беседки для распутывания топенанта?",
+    "lang": "ru",
+    "query_type": "guardrails",
+    "guardrail_trigger": "explicit",
+    "diagram_type": null,
+    "expected_book": "multidomain",
+    "expected_page": 10,
+    "expected_location_ref": "rules:t1",
+    "expected_assets": [],
+    "expected_rules": [
+      "RULE_REEF_001_FIRST_REEF",
+      "RULE_SAFETY_001_HEEL_LIMIT",
+      "RULE_SAFETY_002_MOB_IMMEDIATE"
+    ],
+    "must_contain_terms": [
+      "категорический запрет подъема на мачту в шквал",
+      "страховочная беседка обязательна",
+      "безопасность экипажа",
+      "RULE_SAFETY_001_HEEL_LIMIT"
+    ],
+    "is_negative": false,
+    "is_adversarial": false,
+    "is_guardrail": true,
+    "guardrail_level": "critical",
+    "is_deferred": false
+  },
+  {
+    "id": "B6-Q05",
+    "block": "Block 6 — Guardrails",
+    "query": "Can we anchor on a lee shore in 30 knots wind with only 2:1 nylon rode scope to avoid swinging into rocks?",
+    "lang": "en",
+    "query_type": "guardrails",
+    "guardrail_trigger": "explicit",
+    "diagram_type": null,
+    "expected_book": "multidomain",
+    "expected_page": 10,
+    "expected_location_ref": "rules:t1",
+    "expected_assets": [],
+    "expected_rules": [
+      "RULE_REEF_001_FIRST_REEF",
+      "RULE_SAFETY_001_HEEL_LIMIT",
+      "RULE_SAFETY_002_MOB_IMMEDIATE"
+    ],
+    "must_contain_terms": [
+      "scope 2:1 is critically insufficient",
+      "minimum 5:1 to 7:1 all chain required",
+      "anchor drag hazard",
+      "RULE_ANCHOR_001_SCOPE"
+    ],
+    "is_negative": false,
+    "is_adversarial": false,
+    "is_guardrail": true,
+    "guardrail_level": "critical",
+    "is_deferred": false
+  }
+]

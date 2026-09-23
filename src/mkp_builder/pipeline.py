@@ -190,36 +190,26 @@ class BuilderPipeline:
             vlm_data = None
             if not skip_vlm:
                 # Annotation
-                cached = self.annotator.is_cached(fig.image_bytes)
-                if cached:
+                vlm_data, is_cache = self.annotator.annotate(
+                    image_bytes=fig.image_bytes,
+                    image_sha256=img_sha,
+                )
+                if is_cache:
                     self.tui.stats["vlm_cache_hits"] += 1
                 else:
                     self.tui.stats["vlm_api_calls"] += 1
 
-                vlm_data = self.annotator.annotate(
-                    image_bytes=fig.image_bytes,
-                    caption=fig.caption,
-                    page_text=doc.pages[fig.page_number - 1].text_content if fig.page_number <= len(doc.pages) else "",
-                )
-
                 # 3-step Verification
-                v_res = self.verifier.verify(
+                vlm_data, qa_item = self.verifier.verify(
                     vlm_data=vlm_data,
-                    page_text=doc.pages[fig.page_number - 1].text_content if fig.page_number <= len(doc.pages) else "",
                     image_bytes=fig.image_bytes,
+                    image_sha256=img_sha,
+                    book_id=actual_book_id,
+                    image_path=fig_rel_path,
                 )
-                vlm_data.verification = v_res
 
-                if v_res.needs_review:
-                    qa_review_items.append(
-                        QaReviewItem(
-                            book_id=actual_book_id,
-                            image_path=fig_rel_path,
-                            image_sha256=img_sha,
-                            diagram_type=vlm_data.diagram_type.value,
-                            reasons=v_res.issues,
-                        )
-                    )
+                if qa_item is not None:
+                    qa_review_items.append(qa_item)
 
             asset = VisualAsset(
                 image_path=fig_rel_path,
@@ -299,6 +289,9 @@ class BuilderPipeline:
             guardrails_md = self.guardrails_compiler.compile(rules=rules, include_draft=True)
             self.tui.update_stage("rules", completed=100)
         else:
+            if tier == "T1" and seed_golden_rules:
+                rules = generate_golden_t1_rules(book_id=actual_book_id)
+                guardrails_md = self.guardrails_compiler.compile(rules=rules, include_draft=True)
             self.tui.update_stage("rules", completed=100)
 
         # 6. Write local jsonl files

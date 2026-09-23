@@ -38,6 +38,11 @@ except ImportError:
         SECTION_HEADER = "section_header"
         TEXT = "text"
 
+try:
+    import fitz  # type: ignore
+except ImportError:
+    fitz = None
+
 from mkp_common.location import format_pdf_ref
 from mkp_builder.ocr import build_pipeline_options, OcrProfile, OcrEngine
 from mkp_builder.parsers.base import (
@@ -62,17 +67,87 @@ class PDFParser:
     ):
         self.profile = profile
         self.ocr_engine = ocr_engine
-        self.pipeline_options = build_pipeline_options(
-            profile=profile,
-            ocr_engine=ocr_engine,
-            tessdata_path=tessdata_path,
-            images_scale=images_scale,
-            generate_picture_images=True,
-        )
-        self.converter = DocumentConverter(
-            format_options={
-                InputFormat.PDF: PdfFormatOption(pipeline_options=self.pipeline_options)  # type: ignore
-            }
+        try:
+            self.pipeline_options = build_pipeline_options(
+                profile=profile,
+                ocr_engine=ocr_engine,
+                tessdata_path=tessdata_path,
+                images_scale=images_scale,
+                generate_picture_images=True,
+            )
+            self.converter = DocumentConverter(
+                format_options={
+                    InputFormat.PDF: PdfFormatOption(pipeline_options=self.pipeline_options)  # type: ignore
+                }
+            )
+        except Exception:
+            self.converter = None
+
+    def _parse_with_pymupdf(
+        self,
+        pdf_path: Path,
+        book_id: str,
+        book_title: str,
+        page_range: tuple[int, int] | None = None,
+    ) -> ParsedDocument:
+        if fitz is None:
+            raise NotImplementedError("Neither docling nor fitz (PyMuPDF) is available for PDF parsing")
+
+        logger.info("Parsing PDF with PyMuPDF for %s (book_id=%s)", pdf_path.name, book_id)
+        doc = fitz.open(str(pdf_path))
+        start_p = 1 if not page_range else page_range[0]
+        end_p = len(doc) if not page_range else min(page_range[1], len(doc))
+
+        pages_list: list[ParsedPage] = []
+        fig_counter = 1
+
+        for p_no in range(start_p, end_p + 1):
+            page = doc[p_no - 1]
+            text = page.get_text("text").strip()
+            page_figs: list[ParsedFigure] = []
+
+            # Extract embedded images
+            images = page.get_images(full=True)
+            for img_info in images:
+                xref = img_info[0]
+                try:
+                    base_img = doc.extract_image(xref)
+                    img_bytes = base_img.get("image")
+                    img_ext = base_img.get("ext", "png")
+                    width = base_img.get("width", 0)
+                    height = base_img.get("height", 0)
+                    if img_bytes and len(img_bytes) >= 2048 and width >= 80 and height >= 80:
+                        fig_id = f"{book_id}_p{p_no:03d}_fig{fig_counter:02d}"
+                        parsed_fig = ParsedFigure(
+                            figure_id=fig_id,
+                            page_number=p_no,
+                            image_bytes=img_bytes,
+                            format=img_ext,
+                            location_ref=format_pdf_ref(p_no),
+                        )
+                        page_figs.append(parsed_fig)
+                        fig_counter += 1
+                except Exception as e:
+                    logger.debug("Failed extracting image xref %d on page %d: %s", xref, p_no, e)
+
+            parsed_p = ParsedPage(
+                page_number=p_no,
+                location_ref=format_pdf_ref(p_no),
+                text_content=text,
+                markdown_content=text,
+                figures=page_figs,
+                tables=[],
+            )
+            pages_list.append(parsed_p)
+
+        doc.close()
+        return ParsedDocument(
+            book_id=book_id,
+            title=book_title,
+            format="pdf",
+            pagination="physical",
+            pages=pages_list,
+            metadata={"num_pages": len(pages_list), "num_figures": sum(len(p.figures) for p in pages_list)},
         )
 
     def parse(
@@ -85,14 +160,19 @@ class PDFParser:
         pdf_path = Path(pdf_path)
         book_title = title or pdf_path.stem
 
-        logger.info("Starting Docling PDF conversion for %s (book_id=%s)", pdf_path.name, book_id)
-        
-        kwargs = {}
-        if page_range:
-            kwargs["page_range"] = page_range
+        if self.converter is None:
+            return self._parse_with_pymupdf(pdf_path, book_id, book_title, page_range)
 
-        conv_result = self.converter.convert(pdf_path, **kwargs)
-        doc = conv_result.document
+        try:
+            logger.info("Starting Docling PDF conversion for %s (book_id=%s)", pdf_path.name, book_id)
+            kwargs = {}
+            if page_range:
+                kwargs["page_range"] = page_range
+            conv_result = self.converter.convert(pdf_path, **kwargs)
+            doc = conv_result.document
+        except Exception as e:
+            logger.warning("Docling conversion failed (%s), falling back to PyMuPDF", e)
+            return self._parse_with_pymupdf(pdf_path, book_id, book_title, page_range)
 
         pages_dict: dict[int, ParsedPage] = {}
         page_figures: dict[int, list[ParsedFigure]] = defaultdict(list)

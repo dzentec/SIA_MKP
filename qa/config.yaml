@@ -1,0 +1,42 @@
+# qa/config.yaml
+# Configuration for MKP-R Full Evaluation Spec v1.1 Quality Benchmark
+
+agent:
+  model: "qwen2.5:7b"
+  endpoint: "http://localhost:11434"
+  temperature: 0.1
+  top_p: 0.9
+  seed: 42
+  runs_per_question: 3
+  timeout_sec: 60
+  max_tokens: 1024
+
+judge:
+  model: "gemini-2.5-pro"
+  temperature: 0.0
+  seed: 42
+  judges_per_question: 3
+  cache_file: "qa/judge_cache.jsonl"
+  timeout_sec: 45
+
+mcp:
+  server_url: "http://localhost:8000"
+  tools:
+    - "search_chunks"
+    - "get_diagram_image"
+    - "get_related_entities"
+    - "get_book_manifest"
+    - "query_rules"
+    - "get_rule"
+    - "get_rule_provenance"
+    - "list_conflicts"
+    - "get_guardrails"
+    - "get_bookpack_info"
+
+run:
+  dataset: "qa/golden_full_dataset.json"
+  regression_pool: "qa/regression_pool.json"
+  output_dir: "qa/raw"
+  report_dir: "qa/reports"
+  baseline_samples: 30
+  leakage_samples: 20

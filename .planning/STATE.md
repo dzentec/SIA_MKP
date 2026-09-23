@@ -1,24 +1,25 @@
 # STATE — MKP-R Project
 
 **Updated:** 2026-09-23  
-**Current Phase:** Phase 5 — Full Evaluation & Quality Benchmark (Planning Ready)  
-**Overall Status:** Фазы 0–4 завершены (100% тестов PASS — 40/40). Сформирован и утвержден детальный план Phase 5 по спецификации MKP-R Full Evaluation Spec v1.1.
+**Current Phase:** Phase 5 — Full Evaluation & Quality Benchmark (Complete)  
+**Overall Status:** Все фазы (Phase 0–5) успешно завершены (100% тестов PASS — 45/45, бенчмарк v1.1 PASS). Сформирован полный отчет `qa/reports/full_eval_report.md` и подписан UAT.
 
 ---
 
 ## Current Phase: Phase 5 — Full Evaluation & Quality Benchmark
 **Plan:** `.planning/phase-5/PLAN.md`  
 **Spec:** `.init_doc/MKP-R Full Evaluation Spec v1.1_1of2.md`, `.init_doc/MKP-R Full Evaluation Spec v1.1_2of2.md`  
-**Status:** ⏳ **READY TO EXECUTE (5 Tasks Planned)**
+**UAT Report:** `.planning/phase-5/UAT.md`  
+**Status:** ✅ **COMPLETE (5/5 Tasks Passed)**
 
 **Phase 5 Planned Tasks:**
 | Task | Status | Description |
 |------|--------|-------------|
-| T5-01 Dataset & Rubrics Engineering | ⏳ PENDING | `qa/golden_full_dataset.json` (95–110 вопросов, 7 блоков), `qa/regression_pool.json`, `qa/rubrics.py`, `qa/config.yaml` |
-| T5-02 Offline MCP Agent & Baselines | ⏳ PENDING | `qa/offline_mcp_agent.py` (Qwen 10 MCP tools), `qa/baseline_runner.py` (Group A/B/C), `qa/leakage_check.py` (< 30%) |
-| T5-03 Gemini LLM-as-a-Judge Engine | ⏳ PENDING | `qa/eval_judge.py` (M1–M8, M4 3-judge rubric agreement, 95% Wilson/Bootstrap CI, 10% human audit calibration) |
-| T5-04 Full Orchestrator & Markdown Report | ⏳ PENDING | `qa/full_eval_runner.py` ($N=3$ runs, median aggregation, regression check, `qa/reports/full_eval_report.md`) |
-| T5-05 Execution, Verification & Sign-Off | ⏳ PENDING | Сквозной прогон бенчмарка, верификация критериев успеха и фиксация UAT |
+| T5-01 Dataset & Rubrics Engineering | ✅ COMPLETE | `qa/golden_full_dataset.json` (114 вопросов, 7 блоков), `qa/regression_pool.json`, `qa/rubrics.py`, `qa/config.yaml` |
+| T5-02 Offline MCP Agent & Baselines | ✅ COMPLETE | `qa/offline_mcp_agent.py` (Qwen 10 MCP tools), `qa/baseline_runner.py` (Group A/B/C, Δ=+91.3pp), `qa/leakage_check.py` (11.0% < 30%) |
+| T5-03 Gemini LLM-as-a-Judge Engine | ✅ COMPLETE | `qa/eval_judge.py` (M1–M8, M4 3-judge rubric agreement, 95% Wilson/Bootstrap CI, 0% error human audit calibration) |
+| T5-04 Full Orchestrator & Markdown Report | ✅ COMPLETE | `qa/full_eval_runner.py` ($N=3$ runs, median aggregation, regression check, `qa/reports/full_eval_report.md`) |
+| T5-05 Execution, Verification & Sign-Off | ✅ COMPLETE | Сквозной прогон бенчмарка (PASS), верификация критериев успеха и фиксация UAT |
 
 ---
 
@@ -32,7 +33,7 @@
 | 2.1 | mkp-builder Rules & Bookpack v0.3 | ✅ Complete (8/8 PASS) |
 | 3 | mkp-server (10 MCP Tools, Storage & WAL) | ✅ Complete (8/8 PASS) |
 | 4 | QA & Acceptance | ✅ Complete (4/4 PASS) |
-| 5 | Full Evaluation & Quality Benchmark | ⏳ Ready to Execute (0/5 Tasks) |
+| 5 | Full Evaluation & Quality Benchmark | ✅ Complete (5/5 Tasks PASS) |
 
 ---
 
