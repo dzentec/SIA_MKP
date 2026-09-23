@@ -47,10 +47,16 @@ python tools/runpod/runpod_orchestrator.py
                                  │
                                  ▼
    ┌────────────────────────────────────────────────────────────┐
-   │            Поиск / Создание Пода через API                 │
-   │  • Если под существует -> возобновить (`podResume`)        │
-   │  • Если пода нет -> создать на RTX 4090 (`podFindAndDeploy`)│
-   └─────────────────────────────┬──────────────────────────────┘
+    │            Поиск / Создание Пода через API                 │
+    │  • Если под существует -> возобновить (podResume)        │
+    │  • Если пода нет -> выбор GPU >= 24GB (строго под 32B VLM):│
+    │      1. RTX 5090 (32GB GDDR7 · ~30 t/s · .99/h) [ТОП-1]  │
+    │      2. RTX 4090 (24GB GDDR6X · ~16 t/s · .74/h) [ТОП-2] │
+    │      3. RTX 5000 Ada / A6000 (32/48GB · ~18 t/s)  [ТОП-3]  │
+    │      4. RTX A5000 / 3090 (24GB · ~2.5-6 t/s)      [ТОП-4]  │
+    │  • Фильтр: VRAM < 24GB (5080/4080) ИСКЛЮЧЕНЫ (не влезут)   │
+    │  • Шаблон пода: ase_sia_mkp (ID: 7229lmi7rz)           │
+    └─────────────────────────────┬──────────────────────────────┘
                                  │
                    2. Авто-определение Exposed IP:Port
                                  │
@@ -87,11 +93,26 @@ python tools/runpod/runpod_orchestrator.py
 
 ---
 
+
+### Приоритетный каскад GPU (Строго VRAM ≥ 24 GB)
+> **Критическое требование:** Модель qwen2.5vl:32b (Q4_K_M) требует **~21.5 ГБ VRAM**. Видеокарты с 16 ГБ (RTX 5080, RTX 4080) **полностью исключены**, так как вызовут сброс слоев в оперативную память и падение скорости до < 0.5 t/s.
+
+Оркестратор перебирает только видеокарты с **VRAM ≥ 24 GB** по убыванию приоритета:
+1. 🥇 **NVIDIA GeForce RTX 5090** (32 GB GDDR7 · 1 792 GB/s · ~.99/h) — **ТОП-1 (Абсолютный фаворит)**: генерация ~30 t/s, 10.5 GB свободного запаса VRAM под 32K контекст.
+2. 🥈 **NVIDIA GeForce RTX 4090** (24 GB GDDR6X · 1 008 GB/s · ~.74/h) — **ТОП-2 (Оптимальный)**: генерация ~16 t/s, 2.5 GB запаса VRAM.
+3. 🥉 **NVIDIA RTX 5000 Ada Generation / RTX A6000** (32–48 GB · ~.89/h) — **ТОП-3 (Резерв с большим объемом памяти)**.
+4. 🎖️ **NVIDIA RTX A5000 / RTX 3090** (24 GB · ~.27–.44/h) — **ТОП-4 (Бюджетный резерв)**.
+
+* **Единый шаблон:** ase_sia_mkp (Template ID: 7229lmi7rz) — содержит образ 
+runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404 со всеми зависимостями.
+
+---
+
 ## 3. Макет интерфейса TUI Дашборда (Rich Live)
 
 ```
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ MKP PIPELINE DASHBOARD — RUNPOD CLUSTER               Pod: rtx4090-worker (Running · $0.74/hr)    ┃
+┃ MKP PIPELINE DASHBOARD — RUNPOD CLUSTER               Pod: rtx4090-worker (Running · .99/hr)    ┃
 ┃ [Auto-Stop: ON (Защита бюджета)]                                        Uptime: 00:24:18         ┃
 ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
 ┃ 🖥️ СИСТЕМНЫЕ РЕСУРСЫ:                                                                             ┃
@@ -142,7 +163,7 @@ python tools/runpod/runpod_orchestrator.py
 ## 5. Cost Protection & Auto-Shutdown Feature
 
 ### Objective
-Automatically stop the pod when all books are built and downloaded, or if an unhandled error/deadlock occurs, guaranteeing **zero wasted cost** (preventing accidental overnight charges at $0.27–$0.74/hr).
+Automatically stop the pod when all books are built and downloaded, or if an unhandled error/deadlock occurs, guaranteeing **zero wasted cost** (preventing accidental overnight charges at $0.27–.99/hr).
 
 ### Mechanisms
 1. **Успешное завершение (Normal Completion):**
@@ -193,3 +214,52 @@ Automatically stop the pod when all books are built and downloaded, or if an unh
 2. **Скорость работы на RTX 4090:** $\approx$ **15–18 токенов/сек** ($\approx$ **45 минут на 2 книги** вместо 5 часов на A5000).
 3. **Защита бюджета:** При успешном завершении или при фатальной ошибке под **автоматически выключается**, исключая случайные списания.
 4. **Автономность агента:** Любой ИИ-агент может запустить пайплайн одной командой `python tools/runpod/runpod_orchestrator.py` без интерактивных зависаний.
+
+
+---
+
+## 7. Критерии приемки (Acceptance Criteria / Definition of Done)
+
+* **AC-1 (Zero-Touch Automation):** Пайплайн запускается 1 командой (`python tools/runpod/runpod_orchestrator.py`), сам находит/поднимает под, передает книги, запускает сборку и скачивает результат без ручного ввода.
+* **AC-2 (Строгий фильтр GPU ≥ 24 GB):** Оркестратор выбирает GPU строго по каскаду:
+  1. `NVIDIA GeForce RTX 5090` (32 GB GDDR7 · 1 792 GB/s · ~$0.99/h) — ТОП-1
+  2. `NVIDIA GeForce RTX 4090` (24 GB GDDR6X · 1 008 GB/s · ~$0.74/h) — ТОП-2
+  3. `NVIDIA RTX 5000 Ada Generation` / `RTX A6000` (32–48 GB · ~$0.89/h) — ТОП-3
+  4. `NVIDIA RTX A5000` / `RTX 3090` (24 GB · ~$0.27–$0.44/h) — ТОП-4
+  * Видеокарты с VRAM < 24 GB (RTX 5080, RTX 4080) **автоматически исключаются** из выборки.
+* **AC-3 (Единый шаблон окружения):** Развертывание выполняется строго на базе шаблона `base_sia_mkp` (Template ID: `7229lmi7rz`).
+* **AC-4 (Интерактивный Rich TUI):** Дашборд Rich Live обновляется с интервалом ≤ 1.5 сек, отображает 4 системные метрики (CPU, RAM, Disk, GPU VRAM/Watt/t/s), прогресс книг/этапов и лог событий.
+* **AC-5 (Локальный аудит-лог):** Каждая сессия без потерь пишется в `tools/runpod/logs/session_YYYYMMDD_HHMMSS.log` и зеркалируется в `latest.log`.
+* **AC-6 (Защита бюджета / Auto-Stop):**
+  * При штатном завершении вызывается `podStop` в течение 10 секунд после скачивания архива ($0/час).
+  * При ошибке или зависании > 15 минут запускается 30-минутный таймер защиты с авто-вызовом `podStop`.
+* **AC-7 (Целостность артефактов):** Скачанные `.bookpack.zip` имеют валидные манифесты Schema 1.5, совпадающие SHA256 и без ошибок импортируются в `mkp-server`.
+
+---
+
+## 8. Программа приемочных тестов (UAT Test Suite)
+
+### UAT-1: Unit & Mock-тестирование API и Каскада GPU
+* **Цель:** Проверить выбор GPU, работу GraphQL RunPod API и парсинг IP:Port.
+* **Метод:** Запуск тестов с моками RunPod API (проверка, что при недоступности 5090 выбирается 4090, а 5080/4080 игнорируются).
+* **Команда:** `pytest tests/test_runpod_orchestrator.py -v -k "test_gpu_cascade or test_api_client"`
+
+### UAT-2: Dry-Run тестирование интерфейса TUI
+* **Цель:** Проверить отрисовку всех панелей TUI без реального подключения к поду.
+* **Метод:** Запуск генератора синтетической телеметрии (эмуляция прогресса книги, токенов/сек, всплесков CPU/GPU).
+* **Команда:** `python tools/runpod/tui.py --mock`
+
+### UAT-3: Тестирование Inactivity Guard и горячих клавиш
+* **Цель:** Проверить корректность срабатывания 30-минутного таймера авто-выключения и реакцию на горячие клавиши (`q`, `s`, `d`).
+* **Метод:** Эмуляция зависания потока телеметрии и проверка вызова `podStop`.
+
+### UAT-4: End-to-End прогон на Книге 2 (RTX 5090 / 4090)
+* **Цель:** Полная сквозная проверка на боевой книге *Sail and Rig Tuning*.
+* **Шаги:**
+  1. Запуск `python tools/runpod/runpod_orchestrator.py`.
+  2. Подъем пода на RTX 5090 (или 4090 при отсутствии 5090) по шаблону `base_sia_mkp`.
+  3. Загрузка PDF книги и запуск 32B VLM.
+  4. Отображение живого прогресса в Rich TUI (~30 t/s на 5090).
+  5. Авто-скачивание `sail_and_rig_tuning.bookpack.zip`.
+  6. Проверка `podStop` (списание $0/ч).
+  7. Локальный импорт в `mkp-server` и сверка SHA256.
