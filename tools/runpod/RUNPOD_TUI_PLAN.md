@@ -142,20 +142,26 @@ python tools/runpod/runpod_orchestrator.py
 ## 5. Cost Protection & Auto-Shutdown Feature
 
 ### Objective
-Automatically stop the pod when all books are built and downloaded, guaranteeing **zero wasted cost** (preventing accidental overnight charges at $0.27/hr).
+Automatically stop the pod when all books are built and downloaded, or if an unhandled error/deadlock occurs, guaranteeing **zero wasted cost** (preventing accidental overnight charges at $0.27–$0.74/hr).
 
-### Mechanism
-1. **Completion Trigger:**
-   * When `mkp-builder` finishes exporting all `.bookpack.zip` files for the queue.
-   * Local manager downloads all archives and verifies SHA256 against manifests.
-2. **Auto-Stop Execution via RunPod API:**
-   * Mutation: `podStop(input: {podId: $pod_id})`
-   * API Endpoint: `https://api.runpod.io/graphql`
-   * Headers: `Authorization: Bearer <API_KEY>`
-3. **Safety Fallback on Pod:**
-   * On the pod, the runner script `run_build_32b.py` can optionally execute `runpodctl stop pod $RUNPOD_POD_ID` or `/sbin/poweroff` if `--auto-shutdown` is passed.
-4. **TUI Indicator:**
-   * TUI displays a toggle indicator: `[Auto-Stop: ON (Saves $$$)]`.
+### Mechanisms
+1. **Успешное завершение (Normal Completion):**
+   * Когда `mkp-builder` завершает экспорт всех `.bookpack.zip` файлов.
+   * Локальный менеджер скачивает архивы в `OUTPUT_BOOKPACKS_DIR` и сверяет SHA256.
+   * Вызывается `podStop` через RunPod API $\rightarrow$ статус пода переходит в `STOPPED` ($0/час).
+
+2. **Защита при ошибках и зависаниях (30-Minute Inactivity / Error Guard):**
+   * Если в процессе работы возникает критическая ошибка сборки, падение процесса Ollama/VLM, или прогресс замирает более чем на 15 минут без генерации токенов:
+     * Оркестратор фиксирует ошибку в `tools/runpod/logs/session_*.log`.
+     * В TUI выводится предупреждение со звуковым сигналом и запускается **30-минутный таймер ожидания реакции пользователя**.
+     * **Если пользователь не отреагировал (не нажал клавишу в TUI) в течение 30 минут — оркестратор автоматически вызывает `podStop`**, отключая под и защищая баланс от выгорания впустую.
+
+3. **Ручное отключение в 1 клик:**
+   * Клавиша `s` в TUI или команда `python tools/runpod/runpod_manager.py stop` мгновенно гасит под.
+
+4. **Индикация в интерфейсе:**
+   * TUI отображает статус таймера безопасности: `[Auto-Stop: ON · 30m Error Guard: ACTIVE]`.
+
 
 ---
 
