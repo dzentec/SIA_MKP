@@ -9,8 +9,7 @@ from pathlib import Path
 
 import os
 
-LOCAL_KEY = str((Path(__file__).parent / "id_ed25519").absolute())
-DEFAULT_SSH_KEY = LOCAL_KEY if os.path.exists(LOCAL_KEY) else "C:/Users/User/.ssh/id_ed25519"
+DEFAULT_SSH_KEY = "C:/Users/User/.ssh/id_ed25519"
 DEFAULT_IP = "69.30.85.227"
 DEFAULT_PORT = "22049"
 

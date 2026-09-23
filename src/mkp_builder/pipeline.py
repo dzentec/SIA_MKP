@@ -141,7 +141,7 @@ class BuilderPipeline:
             region,
         )
 
-        self.tui.start()
+        self.tui.start(actual_book_id)
         self.tui.add_stage("parse", "1. Parsing Layout & Figures", total=100)
         self.tui.add_stage("vlm", "2. VLM Annotation & Verification", total=100)
         self.tui.add_stage("chunk", "3. Section-Aware Chunking", total=100)

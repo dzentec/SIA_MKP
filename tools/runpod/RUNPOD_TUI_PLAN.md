@@ -263,3 +263,18 @@ Automatically stop the pod when all books are built and downloaded, or if an unh
   5. Авто-скачивание `sail_and_rig_tuning.bookpack.zip`.
   6. Проверка `podStop` (списание $0/ч).
   7. Локальный импорт в `mkp-server` и сверка SHA256.
+
+---
+
+## 9. Журнал инженерных правок и решений (Production Findings & Fixes Log)
+
+| № | Проблема / Симптом | Первопричина (Root Cause) | Примененное решение | Статус |
+|:---:|---|---|---|:---:|
+| 1 | `WARNING: UNPROTECTED PRIVATE KEY FILE` | Windows OpenSSH требует монопольных прав доступа на приватный ключ `id_ed25519`. | Выполнен сброс наследования и выдача прав только владельцу через `icacls`. | ✅ Решено |
+| 2 | SSH `Connection refused` на порту 22 | Образы `runpod/pytorch` запускают `sshd` **только** при наличии переменной `PUBLIC_KEY` в окружении контейнера. | В GraphQL мутацию `deployPod` добавлена авто-генерация и передача `PUBLIC_KEY`. | ✅ Решено |
+| 3 | `error: externally-managed-environment` | В Ubuntu 24.04 действует PEP 668, блокирующий установку пакетов pip без флага переопределения. | Добавлен флаг `--break-system-packages` в команду установки пакета `mkp[builder]`. | ✅ Решено |
+| 4 | Отсутствие Ollama и Qwen 32B на чистом поде | Шаблон `runpod/pytorch` не содержит предустановленного Ollama. | Оркестратор производит автоматический bootstrap (установка Ollama, запуск демона, pull 32B VLM). | ✅ Решено |
+| 5 | Отсутствие вывода в терминал до старта TUI | До инициализации `Live TUI` логи писались только в файл. | В `OrchestratorLogger` добавлен цветной реал-тайм вывод в консоль до старта TUI. | ✅ Решено |
+| 6 | Ошибочный выбор книги при парсинге | Glob `*.pdf` брал первый попавшийся файл по алфавиту (*Heavy Weather Sailing* вместо *Sail and Rig Tuning*). | Добавлен аргумент `--book` (`sail_and_rig_tuning`, `illustrated_seamanship`, `all`) и фильтр загрузки по SCP. | ✅ Решено |
+| 7 | Преждевременный Auto-Stop | 60-секундный эвристический таймаут гасил под при длительной инициализации layout-парсинга. | Проверка переведена на статус в `/tmp/mkp_progress.json` (`completed` / `error`) и факт завершения процесса. | ✅ Решено |
+
