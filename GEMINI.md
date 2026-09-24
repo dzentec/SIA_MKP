@@ -31,7 +31,7 @@ This project uses the GSD workflow. Follow these rules:
 - **Mandatory e5 prefixes** — `passage:` on indexing, `query:` on search (non-negotiable)
 - **Pinned dependencies** — LadybugDB and FastMCP must be pinned in pyproject.toml
 
-## Technology Versions
+## Technology Versions & Local Paths
 - Python: 3.11
 - Docling: ≥ 2.15
 - LanceDB: ≥ 0.17
@@ -40,6 +40,8 @@ This project uses the GSD workflow. Follow these rules:
 - VLM: qwen2.5vl:7b Q4_K_M via Ollama
 - Text LLM: qwen2.5:7b via Ollama
 - Schema version: 1.5
+- **Local Ollama Binary**: `D:\ollama\ollama.exe`
+- **Local Ollama Models**: `D:\AI_models\ollama` (`$env:OLLAMA_MODELS="D:\AI_models\ollama"`)
 
 ## Current Status
 See `.planning/STATE.md` — Phase 0 (PoC) not yet started.
