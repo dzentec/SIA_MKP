@@ -216,6 +216,8 @@ class RunPodDashboard:
             self.gpu_power_w = int(telem["gpu_power_w"])
         if "gpu_tps" in telem:
             self.gpu_tps = float(telem["gpu_tps"])
+        elif "stats" in telem and isinstance(telem["stats"], dict) and "gpu_tps" in telem["stats"]:
+            self.gpu_tps = float(telem["stats"]["gpu_tps"])
 
         stages_dict = telem.get("stages", {})
         # Map known stages to 5 dashboard stages

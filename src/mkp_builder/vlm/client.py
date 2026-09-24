@@ -35,6 +35,7 @@ class OllamaClient:
         self.ollama_bin_path = ollama_bin_path
         self.models_dir = models_dir
         self._available_models: set[str] | None = None
+        self.last_tps: float = 0.0
 
     def is_alive(self) -> bool:
         try:
@@ -170,6 +171,10 @@ class OllamaClient:
 
                 resp.raise_for_status()
                 data = resp.json()
+                eval_count = data.get("eval_count", 0)
+                eval_dur_ns = data.get("eval_duration", 0)
+                if eval_dur_ns > 0 and eval_count > 0:
+                    self.last_tps = round(float(eval_count) / (float(eval_dur_ns) / 1e9), 1)
                 msg_resp = data.get("message", {})
                 return msg_resp.get("content", "")
             except Exception as e:

@@ -67,6 +67,7 @@ class BuilderProgressTracker:
             "needs_review": 0,
             "chunks": 0,
             "triplets": 0,
+            "gpu_tps": 0.0,
             "archive_path": "",
         }
 

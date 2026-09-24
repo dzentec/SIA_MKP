@@ -278,32 +278,33 @@ class RunPodOrchestrator:
             self.logger.info("Installing Ollama on pod...")
             self.run_ssh("curl -fsSL https://ollama.com/install.sh | sh", timeout=180)
 
-        # Ensure Ollama daemon is running
+        # Ensure Ollama daemon is running with persistent model storage in /workspace
+        self.run_ssh("mkdir -p /workspace/.ollama/models")
         code, stdout, _ = self.run_ssh("curl -s http://127.0.0.1:11434/api/tags || true")
         if "models" not in stdout:
             self.logger.info("Starting Ollama daemon in background...")
-            self.run_ssh("nohup ollama serve > /root/ollama.log 2>&1 &")
+            self.run_ssh("export OLLAMA_MODELS=/workspace/.ollama/models; nohup ollama serve > /workspace/ollama.log 2>&1 &")
             time.sleep(3.0)
 
         # 2. Check & pull Qwen2.5-VL 32B model
         self.logger.info("Checking Qwen2.5-VL 32B model...")
-        code, stdout, _ = self.run_ssh("ollama list | grep 'qwen2.5vl:32b' || true")
+        code, stdout, _ = self.run_ssh("export OLLAMA_MODELS=/workspace/.ollama/models; ollama list | grep 'qwen2.5vl:32b' || true")
         if "qwen2.5vl:32b" not in stdout:
             self.logger.info("Pulling qwen2.5vl:32b (high speed datacenter network, ~2-3 min)...")
-            self.run_ssh("ollama pull qwen2.5vl:32b", timeout=900)
+            self.run_ssh("export OLLAMA_MODELS=/workspace/.ollama/models; ollama pull qwen2.5vl:32b", timeout=900)
 
-        # 3. Ensure directory structure
-        self.run_ssh("mkdir -p /root/SIA_MKP/.init_doc/source_doc /root/SIA_MKP/cloud_build/logs /root/SIA_MKP/cloud_build/out /root/SIA_MKP/tools/runpod")
+        # 3. Ensure directory structure on persistent /workspace volume
+        self.run_ssh("mkdir -p /workspace/SIA_MKP/.init_doc/source_doc /workspace/SIA_MKP/cloud_build/logs /workspace/SIA_MKP/cloud_build/out /workspace/SIA_MKP/tools/runpod")
 
         # 4. Sync codebase and install dependencies
-        self.logger.info("Syncing codebase (src/ and pyproject.toml) to pod...")
+        self.logger.info("Syncing codebase (src/ and pyproject.toml) to persistent volume /workspace/SIA_MKP...")
         src_dir = _repo_root / "src"
         pyproject_file = _repo_root / "pyproject.toml"
-        self.scp_to_pod(src_dir, "/root/SIA_MKP/")
-        self.scp_to_pod(pyproject_file, "/root/SIA_MKP/pyproject.toml")
+        self.scp_to_pod(src_dir, "/workspace/SIA_MKP/")
+        self.scp_to_pod(pyproject_file, "/workspace/SIA_MKP/pyproject.toml")
 
         self.logger.info("Installing mkp-builder package on pod...")
-        self.run_ssh("python3 -m pip install --break-system-packages -e '/root/SIA_MKP[builder]'", timeout=240)
+        self.run_ssh("python3 -m pip install --break-system-packages -e '/workspace/SIA_MKP[builder]'", timeout=240)
 
         # 5. Sync source books
         self.logger.info(f"Syncing source books from {self.source_books_dir} (target: {self.target_book})...")
@@ -314,18 +315,18 @@ class RunPodOrchestrator:
                 if self.target_book == "illustrated_seamanship" and "seamanship" not in book_file.name.lower():
                     continue
                 self.logger.info(f"Uploading {book_file.name} ({book_file.stat().st_size} bytes)...")
-                self.scp_to_pod(book_file, f"/root/SIA_MKP/.init_doc/source_doc/{book_file.name}")
+                self.scp_to_pod(book_file, f"/workspace/SIA_MKP/.init_doc/source_doc/{book_file.name}")
 
         # 6. Sync runner script
         tools_run_build = Path(__file__).parent / "run_build_32b.py"
         if tools_run_build.exists():
-            self.scp_to_pod(tools_run_build, "/root/SIA_MKP/tools/runpod/run_build_32b.py")
+            self.scp_to_pod(tools_run_build, "/workspace/SIA_MKP/tools/runpod/run_build_32b.py")
 
         # 7. Launch build script in background
-        self.logger.info(f"Launching background 32B build runner for '{self.target_book}'...")
+        self.logger.info(f"Launching background 32B build runner for '{self.target_book}' on persistent volume...")
         launch_cmd = (
-            f"nohup python3 /root/SIA_MKP/tools/runpod/run_build_32b.py --book {self.target_book} "
-            "> /root/SIA_MKP/cloud_build/logs/builder.log 2>&1 &"
+            f"nohup python3 /workspace/SIA_MKP/tools/runpod/run_build_32b.py --book {self.target_book} "
+            "> /workspace/SIA_MKP/cloud_build/logs/builder.log 2>&1 &"
         )
         self.run_ssh(launch_cmd)
         time.sleep(2.0)
@@ -338,38 +339,29 @@ class RunPodOrchestrator:
             return {}
 
         telem: dict[str, Any] = {}
+        # Single-line Python script measuring RAM, Disk, instantaneous CPU delta, container cores, and live Ollama t/s
+        py_metrics_cmd = (
+            "python3 -c \"import json,os,shutil,time; du=shutil.disk_usage('/'); "
+            "m=dict(x.split(':',1) for x in open('/proc/meminfo').read().splitlines() if ':' in x); "
+            "mt=int(m.get('MemTotal','0').split()[0])/1048576.0; "
+            "ma=int(m.get('MemAvailable','0').split()[0])/1048576.0; "
+            "st1=[float(x) for x in open('/proc/stat').readline().split()[1:8]]; "
+            "time.sleep(0.05); "
+            "st2=[float(x) for x in open('/proc/stat').readline().split()[1:8]]; "
+            "dtot=sum(st2)-sum(st1); didle=(st2[3]+st2[4])-(st1[3]+st1[4]); "
+            "tps=0.0; "
+            "olog_p='/workspace/ollama.log' if os.path.exists('/workspace/ollama.log') else '/root/ollama.log'; "
+            "olog=open(olog_p).read().splitlines()[-40:] if os.path.exists(olog_p) else []; "
+            "tp_matches=[float(l.split('tokens per second')[0].strip().split()[-1]) for l in olog if 'tokens per second' in l]; "
+            "tps=tp_matches[-1] if tp_matches else 0.0; "
+            "print(json.dumps({'ram_used_gb':round(mt-ma,2),'ram_total_gb':round(mt,2),'disk_used_gb':round(du.used/1073741824.0,2),'disk_total_gb':round(du.total/1073741824.0,2),'cpu_percent':round(max(0.0,min(100.0,100.0*(1.0-didle/dtot))),1) if dtot>0 else 0.0,'cpu_cores':min(os.cpu_count() or 8, 16),'gpu_tps':tps}))\" 2>/dev/null || echo '{}'"
+        )
         composite_cmd = (
-            "cat /tmp/mkp_progress.json 2>/dev/null || echo '{}'\n"
-            "echo '---SYS---'\n"
-            "python3 -c \""
-            "import json, os, shutil, time; "
-            "m={l.split(':')[0].strip(): int(l.split(':')[1].split()[0]) for l in open('/proc/meminfo') if ':' in l}; "
-            "du=shutil.disk_usage('/'); "
-            "cores=os.cpu_count() or 8; "
-            "cpu_pct = 0.0; "
-            "try:\n"
-            "    with open('/proc/stat') as f: v1=[float(x) for x in f.readline().split()[1:8]];\n"
-            "    time.sleep(0.08);\n"
-            "    with open('/proc/stat') as f: v2=[float(x) for x in f.readline().split()[1:8]];\n"
-            "    idle=(v2[3]+v2[4])-(v1[3]+v1[4]); tot=sum(v2)-sum(v1);\n"
-            "    if tot > 0: cpu_pct = max(cpu_pct, 100.0*(1.0 - idle/tot));\n"
-            "except Exception: pass\n"
-            "try:\n"
-            "    import subprocess; "
-            "    out = subprocess.check_output(['ps', '-eo', '%cpu', '--no-headers'], text=True); "
-            "    ps_sum = sum(float(x) for x in out.split() if x.strip()); "
-            "    cpu_pct = max(cpu_pct, ps_sum / max(cores, 1));\n"
-            "except Exception: pass\n"
-            "print(json.dumps({"
-            "'ram_used_gb': round((m.get('MemTotal',0)-m.get('MemAvailable',0))/1048576, 2), "
-            "'ram_total_gb': round(m.get('MemTotal',0)/1048576, 2), "
-            "'disk_used_gb': round(du.used/(1024**3), 2), "
-            "'disk_total_gb': round(du.total/(1024**3), 2), "
-            "'cpu_percent': round(min(100.0, cpu_pct), 1), "
-            "'cpu_cores': cores"
-            "}))\" 2>/dev/null || echo '{}'\n"
-            "echo '---GPU---'\n"
-            "nvidia-smi --query-gpu=utilization.gpu,memory.used,memory.total,temperature.gpu,power.draw --format=csv,noheader,nounits 2>/dev/null || true"
+            f"cat /tmp/mkp_progress.json 2>/dev/null || echo '{{}}'; "
+            f"echo '---SYS---'; "
+            f"{py_metrics_cmd}; "
+            f"echo '---GPU---'; "
+            f"nvidia-smi --query-gpu=utilization.gpu,memory.used,memory.total,temperature.gpu,power.draw --format=csv,noheader,nounits 2>/dev/null || true"
         )
         code, stdout, _ = self.run_ssh(composite_cmd)
         if code == 0 and stdout:
@@ -380,16 +372,18 @@ class RunPodOrchestrator:
             gpu_part = rest.split("---GPU---")[1].strip() if "---GPU---" in rest else ""
 
             # 1. Parse progress JSON
-            if prog_part.startswith("{"):
+            if "{" in prog_part and "}" in prog_part:
                 try:
-                    telem = json.loads(prog_part)
+                    json_str = prog_part[prog_part.find("{"):prog_part.rfind("}") + 1]
+                    telem = json.loads(json_str)
                 except Exception:
                     pass
 
             # 2. Parse Host System Metrics (RAM, Disk, CPU)
-            if sys_part.startswith("{"):
+            if "{" in sys_part and "}" in sys_part:
                 try:
-                    sys_metrics = json.loads(sys_part)
+                    json_str = sys_part[sys_part.find("{"):sys_part.rfind("}") + 1]
+                    sys_metrics = json.loads(json_str)
                     telem.update(sys_metrics)
                 except Exception:
                     pass
@@ -397,7 +391,8 @@ class RunPodOrchestrator:
             # 3. Parse GPU Metrics
             if gpu_part:
                 try:
-                    gpu_fields = [p.strip() for p in gpu_part.split(",")]
+                    gpu_line = gpu_part.strip().splitlines()[-1]
+                    gpu_fields = [p.strip() for p in gpu_line.split(",")]
                     if len(gpu_fields) >= 5:
                         telem["gpu_util"] = float(gpu_fields[0])
                         telem["gpu_util_percent"] = float(gpu_fields[0])
@@ -441,10 +436,12 @@ class RunPodOrchestrator:
                     if telem:
                         dashboard.update_telemetry(telem)
 
-                        # Check for progress movement
+                        # Check for progress movement or active GPU compute
                         sig = json.dumps(telem.get("stages", {}), sort_keys=True)
-                        if sig != self.last_progress_signature:
-                            self.last_progress_signature = sig
+                        is_gpu_active = telem.get("gpu_util", 0) > 15.0 or telem.get("gpu_power_w", 0) > 120
+                        if sig != self.last_progress_signature or is_gpu_active:
+                            if sig != self.last_progress_signature:
+                                self.last_progress_signature = sig
                             self.last_progress_time = now
                             self.guard_trigger_time = None
                             dashboard.guard_countdown_sec = None
@@ -540,7 +537,7 @@ class RunPodOrchestrator:
     def download_and_verify_artifacts(self) -> None:
         """Downloads .bookpack.zip files and verifies SHA256 hashes."""
         self.logger.info(f"Downloading .bookpack.zip artifacts to {self.output_bookpacks_dir}...")
-        self.scp_from_pod("/root/SIA_MKP/cloud_build/out/*.bookpack.zip", self.output_bookpacks_dir)
+        self.scp_from_pod("/workspace/SIA_MKP/cloud_build/out/*.bookpack.zip", self.output_bookpacks_dir)
 
         downloaded = list(self.output_bookpacks_dir.glob("*.bookpack.zip"))
         if not downloaded:

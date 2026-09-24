@@ -61,7 +61,7 @@ class OfflineMcpAgent:
     def __init__(
         self,
         engine: MKPServerEngine,
-        model_name: str = "qwen2.5:7b",
+        model_name: str = "qwen2.5vl:7b",
         ollama_endpoint: str = "http://localhost:11434",
         temperature: float = 0.1,
         top_p: float = 0.9,
@@ -97,6 +97,7 @@ class OfflineMcpAgent:
                 "temperature": self.temperature,
                 "top_p": self.top_p,
                 "seed": self.seed,
+                "num_predict": 350,
             },
             "stream": False,
         }
@@ -106,7 +107,7 @@ class OfflineMcpAgent:
             headers={"Content-Type": "application/json"},
             method="POST",
         )
-        with urllib.request.urlopen(req, timeout=60) as resp:
+        with urllib.request.urlopen(req, timeout=180) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             return data.get("response", "")
 
@@ -172,7 +173,7 @@ class OfflineMcpAgent:
                 if not chunks:
                     ans = "No relevant chunks found."
                 else:
-                    chunk_context = "\n".join([f"[{c.get('book_id')}, p.{c.get('page_number')}]: {c.get('text_content')}" for c in chunks])
+                    chunk_context = "\n".join([f"[{c.get('book_id')}, p.{c.get('page_number')}]: {c.get('text_content','')[:700]}" for c in chunks[:2]])
                     if self.ollama_available:
                         try:
                             ans = self._call_ollama_generate(
@@ -242,12 +243,12 @@ class OfflineMcpAgent:
 
         # 3. Search Chunks (cross-lingual search across full corpus)
         tools_called.append("search_chunks")
-        chunks = self.engine.search_chunks(query, top_k=5)
+        chunks = self.engine.search_chunks(query, top_k=2)
         retrieved_chunks = chunks
 
         # 4. Graph inspection
         words = re.findall(r"\b[A-Za-zА-Яа-я0-9_-]{4,}\b", query)
-        for w in words[:3]:
+        for w in words[:2]:
             tools_called.append("get_related_entities")
             rel = self.engine.get_related_entities(w)
             if rel:
@@ -270,16 +271,17 @@ class OfflineMcpAgent:
             if self.ollama_available:
                 try:
                     context_blocks = []
-                    for c in chunks:
-                        context_blocks.append(f"Source [{c.get('book_id')}, page {c.get('page_number')}]:\n{c.get('text_content')}")
-                    for r in activated_rules:
+                    for c in chunks[:2]:
+                        txt_snippet = c.get('text_content', '')[:700]
+                        context_blocks.append(f"Source [{c.get('book_id')}, page {c.get('page_number')}]:\n{txt_snippet}")
+                    for r in activated_rules[:2]:
                         r_id = r.get("rule_id", "")
                         r_sev = r.get("severity", "")
                         context_blocks.append(f"Safety Rule [{r_id}, severity={r_sev}]")
 
                     full_ctx = "\n\n".join(context_blocks)
                     prompt = f"Knowledge Context:\n{full_ctx}\n\nUser Question:\n{query}\n\nProvide an authoritative answer. Strictly cite sources using [book, page] format and enforce safety rules."
-                    ans = self._call_ollama_generate(prompt=prompt, system_prompt=gr_markdown)
+                    ans = self._call_ollama_generate(prompt=prompt, system_prompt=gr_markdown[:400] if gr_markdown else "")
                 except Exception:
                     ans = self._synthesize_answer_from_chunks(query, chunks, activated_rules, lang, question_item)
             else:

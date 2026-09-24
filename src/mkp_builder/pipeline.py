@@ -218,6 +218,8 @@ class BuilderPipeline:
                 bbox=fig.bbox,
             )
             visual_assets_by_page[fig.page_number].append(asset)
+            if hasattr(self.ollama, "last_tps") and self.ollama.last_tps > 0:
+                self.tui.stats["gpu_tps"] = self.ollama.last_tps
             self.tui.update_stage("vlm", completed=idx)
 
         self.tui.stats["needs_review"] = len(qa_review_items)
@@ -244,6 +246,8 @@ class BuilderPipeline:
                     location_ref=c.location_ref,
                 )
                 triplets.extend(c_triplets)
+                if hasattr(self.ollama, "last_tps") and self.ollama.last_tps > 0:
+                    self.tui.stats["gpu_tps"] = self.ollama.last_tps
                 self.tui.update_stage("triplets", completed=c_idx)
         else:
             self.tui.update_stage("triplets", completed=100)

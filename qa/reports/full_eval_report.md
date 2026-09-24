@@ -1,7 +1,7 @@
 # MKP-R Full Evaluation & Quality Benchmark Report
 
 **Specification Version:** v1.1  
-**Execution Date:** 2026-09-23T08:11:49.833139+00:00  
+**Execution Date:** 2026-09-24T07:15:08.099130+00:00  
 **Target System:** MKP-R (Maritime Knowledge Pack Offline Server & Engine)  
 **Agent Model:** qwen2.5:7b (Offline, $N=3$ runs/question, seed=42)  
 **Judge Engine:** gemini-2.5-pro + Statistical Wilson/Bootstrap CI Engine  
