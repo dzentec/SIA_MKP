@@ -131,6 +131,10 @@ YAML-онтология (`sia_ontology.yaml`, `sia_relations.yaml`, `mapping.yam
 Модули `src/mkp_tui/`: `SignalWatcher` (`watchdog` на `tui_signal.json`), `AlertSound` (`winsound` на Windows / terminal bell на Linux с разделением warning/error/critical/success и флагом `--no-sound`), рендеринг экрана аварийного останова с таблицей провалов VLM.
 **Scope:** Phase 6
 
+#### REQ-BLD-V2-11 — Трёхступенчатая фильтрация изображений (Clean RUNPOD)
+Модули `src/mkp_builder/filters/`: `RuleBasedImageFilter` (FILTER 1 на CPU: edge density/concentration, аспект, размер, selective OCR номеров страниц, perceptual hash dedup; сохранение ценных ЧБ схем) $\to$ `VLMImageFilter` (FILTER 2 на GPU: `qwen2.5vl:7b`, классификация diagram/rigging/photo/cover/map, `extract_worthy: bool`, strict fail-open) $\to$ существующая аннотация VLM 32B (FILTER 3). Сокращение потока с 226 до ~50 картинок (экономия 1+ ч GPU), логирование `image_filter_rejects.jsonl` и `image_filter_summary.json`.
+**Scope:** Phase 6
+
 ---
 
 ### RUNPOD-H: Гибридный конвейер (RunPod + OpenRouter / Phase 7)

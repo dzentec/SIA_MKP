@@ -11,7 +11,7 @@
 | 3 | mkp-server | 4-уровневое хранилище + импорт дельт v0.3.0 + WAL/Rollback (I0–I14) + индексы + 10 MCP-инструментов | REQ-S01..13 | 7 (✅ PASS) |
 | 4 | QA & Acceptance | Сквозной прогон Golden Dataset + 15+ эталонных правил + тест Rollback/WAL | REQ-QA-01, QA-02 | 5 (✅ PASS) |
 | 5 | Full Evaluation & Quality Benchmark | Полный бенчмарк 2-х книг (95–110 вопросов, 7 блоков), Offline MCP Agent (Qwen), Baseline A/B/C, Gemini LLM-as-a-Judge (M1–M8) | REQ-EVAL-01..06 | 8 (✅ PASS) |
-| 6 | MKP-Builder Pipeline Upgrade, Critic & Fallback (v4.2) | 5 критических багфиксов, OllamaManager (single-GPU VRAM ≤30GB), двухступенчатый fail-open критик (32B), подсистема аварийного останова Fallback v4.2 (HealthMonitor, KillSwitch, VLM tracker, PodStopper, RetryHelper, BatchCircuitBreaker, EventLogger), TUI сигналы и звук | REQ-BLD-V2-01..10 | 8 (В процессе) |
+| 6 | MKP-Builder Pipeline Upgrade, Critic, Fallback & Image Filtering (v4.2) | 5 критических багфиксов, OllamaManager (single-GPU VRAM ≤30GB), 3-ступенчатый фильтр картинок (226 ➔ ~50, CPU+7B), двухступенчатый fail-open критик (32B), подсистема аварийного останова Fallback v4.2, TUI сигналы и звук | REQ-BLD-V2-01..11 | 9 (В процессе) |
 | 7 | RUNPOD-H: Hybrid MKP Builder (RunPod + OpenRouter) | Гибридный конвейер (RunPod parse/VLM + ПК/OpenRouter LLM), OpenRouter Batch API (DeepSeek R1, 24h SLA), персистентность `pending_batch.json`, BalanceGuard ($10 limit), RateLimiter (150/10s), CircuitBreaker, изолированный Rich TUI | REQ-HYB-01..08 | 8 (Запланировано) |
 
 ---
@@ -106,23 +106,24 @@
 
 ---
 
-## Phase 6: MKP-Builder Pipeline Upgrade, Dual-Stage Critic & Fallback Subsystem (v4.2) (В процессе)
-**Goal:** Кардинальное устранение проблемы овергенерации правил (сокращение с 800+ до 40–50 операционных правил на книгу) и реализация полной подсистемы аварийного останова и защиты инвестиций в GPU (Fallback Spec v4.2).  
+## Phase 6: MKP-Builder Pipeline Upgrade, Dual-Stage Critic, Fallback Subsystem & 3-Stage Image Filtering (v4.2) (В процессе)
+**Goal:** Кардинальное устранение проблемы овергенерации правил (сокращение с 800+ до 40–50 операционных правил на книгу), 3-ступенчатая фильтрация изображений (226 ➔ ~50 картинок перед VLM 32B, экономия 1+ ч GPU) и реализация полной подсистемы аварийного останова и защиты инвестиций в GPU (Fallback Spec v4.2).  
 **Mode:** standard / pipeline-upgrade  
 **Duration:** 2–3 дня  
 **Plan:** `.planning/phase-6/PLAN.md`  
-**Spec:** `.init_doc/MKP_Builder update.md`, `.init_doc/MKP_Builder update(critic_code).md`, `.init_doc/MKP_Builder update_Fallback Specification v4.2.md`
+**Spec:** `.init_doc/MKP_Builder update.md`, `.init_doc/MKP_Builder update(critic_code).md`, `.init_doc/MKP_Builder update_Fallback Specification v4.2.md`, `.init_doc/Image Filtering for RUNPOD.md`
 
-**Requirements:** REQ-BLD-V2-01, REQ-BLD-V2-02, REQ-BLD-V2-03, REQ-BLD-V2-04, REQ-BLD-V2-05, REQ-BLD-V2-06, REQ-BLD-V2-07, REQ-BLD-V2-08, REQ-BLD-V2-09, REQ-BLD-V2-10
+**Requirements:** REQ-BLD-V2-01, REQ-BLD-V2-02, REQ-BLD-V2-03, REQ-BLD-V2-04, REQ-BLD-V2-05, REQ-BLD-V2-06, REQ-BLD-V2-07, REQ-BLD-V2-08, REQ-BLD-V2-09, REQ-BLD-V2-10, REQ-BLD-V2-11
 
 **Success Criteria:**
 1. Устранены 5 критических багов генерации правил (нормализация префиксов `RULE-`, `Trigger.value` float/list, сериализация противоречий, фильтрация не сопоставленных claims, строгая проверка чисел).
-2. `OllamaManager` гарантирует последовательную работу моделей без превышения 30 GB VRAM на одной GPU с трекингом латентности переключения.
-3. Двухступенчатый критик (`ClusterCritic` + `RuleCritic`) отсеивает описательные/справочные утверждения и доводит количество правил до 40–50 операционных инструкций.
-4. Подсистема критика строго fail-open: при ошибках парсинга, таймаутах или сбоях API пайплайн продолжает работу (`keep` / `uncertain`).
-5. Реализована подсистема Fallback v4.2 (`src/mkp_builder/fallback/`): `HealthMonitor`, `KillSwitch`, `VLMFailTracker` (1–4 skip, 5 stop), `PodStopper` (RunPod API), `RetryHelper`, `BatchCircuitBreaker` (2 книги подряд -> STOP batch).
-6. TUI-сигнализация (`SignalWatcher` на `work/tui_signal.json`) и звуковые оповещения (`AlertSound` по severity с флагом `--no-sound`).
-7. Реализованы пресеты конфигурации (`full`, `basic`, `fast`), флаги CLI и расширенная воронка метрик `PipelineMetrics` в отчете `ingest_report.md`.
+2. `OllamaManager` гарантирует последовательную работу моделей без превышения 30 GB VRAM на одной GPU (7B filter $\to$ 32B VLM $\to$ 32B extractor $\to$ 32B critic).
+3. 3-ступенчатый фильтр изображений (`RuleBasedImageFilter` CPU $\to$ `VLMImageFilter` Qwen VL 7B GPU $\to$ VLM 32B) отсекает 78% мусора (226 $\to$ ~50) без потери ценных ЧБ схем такелажа.
+4. Двухступенчатый критик (`ClusterCritic` + `RuleCritic`) отсеивает описательные/справочные утверждения и доводит количество правил до 40–50 операционных инструкций.
+5. Подсистема критика и VLM-фильтра строго fail-open: при ошибках парсинга или сбоях API пайплайн продолжает работу (`keep` / `uncertain`).
+6. Реализована подсистема Fallback v4.2 (`src/mkp_builder/fallback/`): `HealthMonitor`, `KillSwitch`, `VLMFailTracker` (1–4 skip, 5 stop), `PodStopper` (RunPod API), `RetryHelper`, `BatchCircuitBreaker` (2 книги подряд -> STOP batch).
+7. TUI-сигнализация (`SignalWatcher` на `work/tui_signal.json`) и звуковые оповещения (`AlertSound` по severity с флагом `--no-sound`).
+8. Реализованы пресеты конфигурации (`full`, `basic`, `fast`), `builder_config.yaml`, флаги CLI и расширенная воронка метрик `PipelineMetrics` в отчете `ingest_report.md`.
 
 ---
 

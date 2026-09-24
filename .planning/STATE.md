@@ -16,12 +16,13 @@
 |------|--------|-------------|
 | T6-01 Core Bug Patches & Schema Alignment | ⏳ READY | 5 багфиксов (`synthesize.py`, `rules_schema.py`, `cluster.py`, `claims.py`) |
 | T6-02 Single-GPU OllamaManager | ⏳ READY | `ollama_manager.py` (последовательная загрузка моделей в VRAM ≤ 30GB, warmup, latency metrics) |
-| T6-03 Configuration & Presets | ⏳ READY | `config.py` (пресеты `full`, `basic`, `fast`, `KillSwitchConfig`, CLI флаги) |
-| T6-04 Dual-Stage Critic Subsystem | ⏳ READY | `critic/` (`verdict.py`, `base.py`, `prompts.py`, `cluster_critic.py`, `rule_critic.py`, `registry.py`) |
-| T6-05 Fallback & Health Monitoring Subsystem | ⏳ READY | `fallback/` (`health.py`, `killswitch.py`, `vlm_tracker.py`, `retry.py`, `pod_stopper.py`, `shutdown.py`, `logger.py`, `batch.py`) |
-| T6-06 TUI Signal Watcher & Sound Alerts | ⏳ READY | `mkp_tui/` (`watcher.py`, `sound.py`, `renderer.py` для аварийного останова) |
-| T6-07 Pipeline Integration & Funnel Metrics | ⏳ READY | `metrics.py`, интеграция 6 фаз + KillSwitch в `pipeline.py` и `cli.py`, расширенный отчет `ingest_report.md` |
-| T6-08 Comprehensive Testing & Acceptance | ⏳ READY | Unit-тесты критиков, парсера JSON, KillSwitch, VLM tracker, CircuitBreaker, TUI watcher и сквозная валидация |
+| T6-03 Configuration, YAML & Presets | ⏳ READY | `config.py`, `builder_config.yaml` (пресеты `full`, `basic`, `fast`, `KillSwitchConfig`, CLI флаги) |
+| T6-04 3-Stage Image Filtering Subsystem | ⏳ READY | `filters/` (`image_filter.py` CPU, `vlm_filter.py` Qwen VL 7B GPU, fail-open, 226 ➔ ~50 images) |
+| T6-05 Dual-Stage Critic Subsystem | ⏳ READY | `critic/` (`verdict.py`, `base.py`, `prompts.py`, `cluster_critic.py`, `rule_critic.py`, `registry.py`) |
+| T6-06 Fallback & Health Monitoring Subsystem | ⏳ READY | `fallback/` (`health.py`, `killswitch.py`, `vlm_tracker.py`, `retry.py`, `pod_stopper.py`, `shutdown.py`, `logger.py`, `batch.py`) |
+| T6-07 TUI Signal Watcher & Sound Alerts | ⏳ READY | `mkp_tui/` (`watcher.py`, `sound.py`, `renderer.py` для аварийного останова) |
+| T6-08 Pipeline Integration & Funnel Metrics | ⏳ READY | `metrics.py`, интеграция 6 фаз + фильтры + KillSwitch в `pipeline.py` и `cli.py`, расширенный отчет |
+| T6-09 Comprehensive Testing & Acceptance | ⏳ READY | Unit-тесты фильтров, критиков, парсера JSON, KillSwitch, VLM tracker, CircuitBreaker, TUI |
 
 ---
 
