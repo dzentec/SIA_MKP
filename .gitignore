@@ -34,7 +34,7 @@ htmlcov/
 .mypy_cache/
 .ruff_cache/
 
-# IDE
+# IDE & Editor
 .idea/
 .vscode/
 *.swp
@@ -45,12 +45,18 @@ work/
 *.bookpack.zip
 .cache/
 *.log
+.codebase-memory/
 
-# Storage & Raw evaluation data
+# Storage & Heavy Database Artifacts
 storage/
 storage_*/
+data/
+out/*.bookpack.zip
+
+# QA & Raw evaluation data
 qa/raw/
 qa/reports/*.pdf
+qa/judge_cache.jsonl
 
 # Initial & source documents
 .init_doc/
@@ -62,9 +68,8 @@ init_doc/
 !.env.example
 *.exe
 tools/runpod/logs/
+tools/runpod/id_ed25519*
 id_ed25519*
 id_rsa*
 *.pem
 *.key
-
-
