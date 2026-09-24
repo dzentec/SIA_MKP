@@ -1,25 +1,27 @@
 # STATE — MKP-R Project
 
-**Updated:** 2026-09-23  
-**Current Phase:** Phase 5 — Full Evaluation & Quality Benchmark (Complete)  
-**Overall Status:** Все фазы (Phase 0–5) успешно завершены (100% тестов PASS — 45/45, бенчмарк v1.1 PASS). Сформирован полный отчет `qa/reports/full_eval_report.md` и подписан UAT.
+**Updated:** 2026-09-24  
+**Current Phase:** Phase 6 — MKP-Builder Pipeline Upgrade, Dual-Stage Critic & Fallback Subsystem (v4.2)  
+**Overall Status:** Фазы 0–5 успешно завершены (100% тестов PASS, бенчмарк v1.1 PASS). Выполняется Phase 6: устранение 5 критических багов генерации правил, single-GPU `OllamaManager`, двухступенчатый критик (`ClusterCritic` + `RuleCritic` 32B), подсистема аварийного останова Fallback v4.2, TUI-сигнализация и звуковые оповещения.
 
 ---
 
-## Current Phase: Phase 5 — Full Evaluation & Quality Benchmark
-**Plan:** `.planning/phase-5/PLAN.md`  
-**Spec:** `.init_doc/MKP-R Full Evaluation Spec v1.1_1of2.md`, `.init_doc/MKP-R Full Evaluation Spec v1.1_2of2.md`  
-**UAT Report:** `.planning/phase-5/UAT.md`  
-**Status:** ✅ **COMPLETE (5/5 Tasks Passed)**
+## Current Phase: Phase 6 — MKP-Builder Pipeline Upgrade, Dual-Stage Critic & Fallback Subsystem (v4.2)
+**Plan:** `.planning/phase-6/PLAN.md`  
+**Spec:** `.init_doc/MKP_Builder update.md`, `.init_doc/MKP_Builder update(critic_code).md`, `.init_doc/MKP_Builder update_Fallback Specification v4.2.md`  
+**Status:** 🟡 **IN PROGRESS**
 
-**Phase 5 Planned Tasks:**
+**Phase 6 Planned Tasks:**
 | Task | Status | Description |
 |------|--------|-------------|
-| T5-01 Dataset & Rubrics Engineering | ✅ COMPLETE | `qa/golden_full_dataset.json` (114 вопросов, 7 блоков), `qa/regression_pool.json`, `qa/rubrics.py`, `qa/config.yaml` |
-| T5-02 Offline MCP Agent & Baselines | ✅ COMPLETE | `qa/offline_mcp_agent.py` (Qwen 10 MCP tools), `qa/baseline_runner.py` (Group A/B/C, Δ=+91.3pp), `qa/leakage_check.py` (11.0% < 30%) |
-| T5-03 Gemini LLM-as-a-Judge Engine | ✅ COMPLETE | `qa/eval_judge.py` (M1–M8, M4 3-judge rubric agreement, 95% Wilson/Bootstrap CI, 0% error human audit calibration) |
-| T5-04 Full Orchestrator & Markdown Report | ✅ COMPLETE | `qa/full_eval_runner.py` ($N=3$ runs, median aggregation, regression check, `qa/reports/full_eval_report.md`) |
-| T5-05 Execution, Verification & Sign-Off | ✅ COMPLETE | Сквозной прогон бенчмарка (PASS), верификация критериев успеха и фиксация UAT |
+| T6-01 Core Bug Patches & Schema Alignment | ⏳ READY | 5 багфиксов (`synthesize.py`, `rules_schema.py`, `cluster.py`, `claims.py`) |
+| T6-02 Single-GPU OllamaManager | ⏳ READY | `ollama_manager.py` (последовательная загрузка моделей в VRAM ≤ 30GB, warmup, latency metrics) |
+| T6-03 Configuration & Presets | ⏳ READY | `config.py` (пресеты `full`, `basic`, `fast`, `KillSwitchConfig`, CLI флаги) |
+| T6-04 Dual-Stage Critic Subsystem | ⏳ READY | `critic/` (`verdict.py`, `base.py`, `prompts.py`, `cluster_critic.py`, `rule_critic.py`, `registry.py`) |
+| T6-05 Fallback & Health Monitoring Subsystem | ⏳ READY | `fallback/` (`health.py`, `killswitch.py`, `vlm_tracker.py`, `retry.py`, `pod_stopper.py`, `shutdown.py`, `logger.py`, `batch.py`) |
+| T6-06 TUI Signal Watcher & Sound Alerts | ⏳ READY | `mkp_tui/` (`watcher.py`, `sound.py`, `renderer.py` для аварийного останова) |
+| T6-07 Pipeline Integration & Funnel Metrics | ⏳ READY | `metrics.py`, интеграция 6 фаз + KillSwitch в `pipeline.py` и `cli.py`, расширенный отчет `ingest_report.md` |
+| T6-08 Comprehensive Testing & Acceptance | ⏳ READY | Unit-тесты критиков, парсера JSON, KillSwitch, VLM tracker, CircuitBreaker, TUI watcher и сквозная валидация |
 
 ---
 
@@ -34,6 +36,8 @@
 | 3 | mkp-server (10 MCP Tools, Storage & WAL) | ✅ Complete (8/8 PASS) |
 | 4 | QA & Acceptance | ✅ Complete (4/4 PASS) |
 | 5 | Full Evaluation & Quality Benchmark | ✅ Complete (5/5 Tasks PASS) |
+| 6 | MKP-Builder Pipeline Upgrade, Critic & Fallback (v4.2) | 🟡 In Progress |
+| 7 | RUNPOD-H: Hybrid MKP Builder (RunPod + OpenRouter) | ⚪ Planned (Plan ready) |
 
 ---
 

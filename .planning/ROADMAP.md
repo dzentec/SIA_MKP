@@ -11,6 +11,8 @@
 | 3 | mkp-server | 4-уровневое хранилище + импорт дельт v0.3.0 + WAL/Rollback (I0–I14) + индексы + 10 MCP-инструментов | REQ-S01..13 | 7 (✅ PASS) |
 | 4 | QA & Acceptance | Сквозной прогон Golden Dataset + 15+ эталонных правил + тест Rollback/WAL | REQ-QA-01, QA-02 | 5 (✅ PASS) |
 | 5 | Full Evaluation & Quality Benchmark | Полный бенчмарк 2-х книг (95–110 вопросов, 7 блоков), Offline MCP Agent (Qwen), Baseline A/B/C, Gemini LLM-as-a-Judge (M1–M8) | REQ-EVAL-01..06 | 8 (✅ PASS) |
+| 6 | MKP-Builder Pipeline Upgrade, Critic & Fallback (v4.2) | 5 критических багфиксов, OllamaManager (single-GPU VRAM ≤30GB), двухступенчатый fail-open критик (32B), подсистема аварийного останова Fallback v4.2 (HealthMonitor, KillSwitch, VLM tracker, PodStopper, RetryHelper, BatchCircuitBreaker, EventLogger), TUI сигналы и звук | REQ-BLD-V2-01..10 | 8 (В процессе) |
+| 7 | RUNPOD-H: Hybrid MKP Builder (RunPod + OpenRouter) | Гибридный конвейер (RunPod parse/VLM + ПК/OpenRouter LLM), OpenRouter Batch API (DeepSeek R1, 24h SLA), персистентность `pending_batch.json`, BalanceGuard ($10 limit), RateLimiter (150/10s), CircuitBreaker, изолированный Rich TUI | REQ-HYB-01..08 | 8 (Запланировано) |
 
 ---
 
@@ -29,7 +31,7 @@
 
 ---
 
-## Phase 2.1: mkp-builder — Rules Pipeline & Bookpack v0.3
+## Phase 2.1: mkp-builder — Rules Pipeline & Bookpack v0.3 (✅ Завершено)
 **Goal:** Онтология, извлечение атомарных утверждений (Claims), кластеризация, синтез формализованных правил (Rules), компиляция Guardrails (≤ 8000 символов), экспорт артефакта `.bookpack.zip` стандарта **v0.3.0** (4 уровня контента: T1 Base + Stubs T2/T2.5/T3), генерация **per-artifact SHA-256** и цифровой подписи **Ed25519** (I13).  
 **Mode:** standard  
 **Duration:** 2 дня  
@@ -47,7 +49,7 @@
 
 ---
 
-## Phase 3: mkp-server — 4-Tier Knowledge Base, Storage Lifecycle & 10 MCP Tools
+## Phase 3: mkp-server — 4-Tier Knowledge Base, Storage Lifecycle & 10 MCP Tools (✅ Завершено)
 **Goal:** Полнофункциональный сервер: управление хранилищем `/storage/` (`active/`, `backup/`, `fallback/`, `staging/`, `failed/`), импорт архивов и раздельных дельт v0.3.0 с верификацией Ed25519 (I13) и совместимости (I14), транзакционный конвейер с WAL и гарантированным отбоем/Rollback (I0–I10), построение индексов (LanceDB + NetworkX Graph + Rules Store), **10 MCP-инструментов** (включая `get_bookpack_info`), изоляция T1 и orphaning-контроль.  
 **Mode:** standard  
 **Duration:** 2 дня  
@@ -102,3 +104,43 @@
 7. Регрессионный раннер `qa/regression_pool.json` с выборкой 10 вопросов.
 8. Генерация итогового отчета `qa/reports/full_eval_report.md` с таксономией ошибок и атрибуцией причин.
 
+---
+
+## Phase 6: MKP-Builder Pipeline Upgrade, Dual-Stage Critic & Fallback Subsystem (v4.2) (В процессе)
+**Goal:** Кардинальное устранение проблемы овергенерации правил (сокращение с 800+ до 40–50 операционных правил на книгу) и реализация полной подсистемы аварийного останова и защиты инвестиций в GPU (Fallback Spec v4.2).  
+**Mode:** standard / pipeline-upgrade  
+**Duration:** 2–3 дня  
+**Plan:** `.planning/phase-6/PLAN.md`  
+**Spec:** `.init_doc/MKP_Builder update.md`, `.init_doc/MKP_Builder update(critic_code).md`, `.init_doc/MKP_Builder update_Fallback Specification v4.2.md`
+
+**Requirements:** REQ-BLD-V2-01, REQ-BLD-V2-02, REQ-BLD-V2-03, REQ-BLD-V2-04, REQ-BLD-V2-05, REQ-BLD-V2-06, REQ-BLD-V2-07, REQ-BLD-V2-08, REQ-BLD-V2-09, REQ-BLD-V2-10
+
+**Success Criteria:**
+1. Устранены 5 критических багов генерации правил (нормализация префиксов `RULE-`, `Trigger.value` float/list, сериализация противоречий, фильтрация не сопоставленных claims, строгая проверка чисел).
+2. `OllamaManager` гарантирует последовательную работу моделей без превышения 30 GB VRAM на одной GPU с трекингом латентности переключения.
+3. Двухступенчатый критик (`ClusterCritic` + `RuleCritic`) отсеивает описательные/справочные утверждения и доводит количество правил до 40–50 операционных инструкций.
+4. Подсистема критика строго fail-open: при ошибках парсинга, таймаутах или сбоях API пайплайн продолжает работу (`keep` / `uncertain`).
+5. Реализована подсистема Fallback v4.2 (`src/mkp_builder/fallback/`): `HealthMonitor`, `KillSwitch`, `VLMFailTracker` (1–4 skip, 5 stop), `PodStopper` (RunPod API), `RetryHelper`, `BatchCircuitBreaker` (2 книги подряд -> STOP batch).
+6. TUI-сигнализация (`SignalWatcher` на `work/tui_signal.json`) и звуковые оповещения (`AlertSound` по severity с флагом `--no-sound`).
+7. Реализованы пресеты конфигурации (`full`, `basic`, `fast`), флаги CLI и расширенная воронка метрик `PipelineMetrics` в отчете `ingest_report.md`.
+
+---
+
+## Phase 7: RUNPOD-H — Hybrid MKP Builder (RunPod + OpenRouter) (Запланировано)
+**Goal:** Реализация гибридного конвейера RUNPOD-H (RunPod для parse+VLM, локальный ПК + OpenRouter API для всех текстовых LLM и критики), ускорение обработки книги в 2 раза (до 2–2.5 часов) при стоимости ~$1.30–$1.80 за книгу.  
+**Mode:** standard / hybrid-builder  
+**Duration:** 3–4 дня  
+**Plan:** `.planning/phase-7/PLAN.md`  
+**Spec:** `.init_doc/RUNPOD-H_Master Specification v1.0_1of2.md`, `.init_doc/RUNPOD-H_Master Specification v1.0_2of2.md`
+
+**Requirements:** REQ-HYB-01, REQ-HYB-02, REQ-HYB-03, REQ-HYB-04, REQ-HYB-05, REQ-HYB-06, REQ-HYB-07, REQ-HYB-08
+
+**Success Criteria:**
+1. Httpx-клиент `OpenRouterClient` с повторными попытками, экспоненциальным backoff, RateLimiter (150/10s), CircuitBreaker (5 ошибок $\to$ OPEN).
+2. `BalanceGuard` ($10 лимит) и `CostTracker` (лог `costs.jsonl` на основе `total_cost` от OpenRouter).
+3. Асинхронный `BatchClient` (24h SLA) с обработкой частичных сбоев (Option A: 95 успехов, 5 в `batch_failures.jsonl`).
+4. Персистентность батчей через `pending_batch.json` с возможностью выключения ПК и восстановления по hotkey `l` (`BatchesView`).
+5. 12-этапный оркестратор `OpenRouterPhase` с пошаговыми чекпоинтами `state.json`.
+6. Изолированный Rich TUI монитор с горячими клавишами (`q/b/s/r/l/d/i`) и звуковыми сигналами.
+7. CLI команда `python -m mkp_builder.openrouter.cli run` и автоматический старт фазы в `pipeline.py`.
+8. 100% покрытие unit-тестами с моками httpx (`tests/openrouter/`).

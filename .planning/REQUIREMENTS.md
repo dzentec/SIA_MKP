@@ -85,6 +85,90 @@ YAML-онтология (`sia_ontology.yaml`, `sia_relations.yaml`, `mapping.yam
 
 ---
 
+### Обновление конвейера и двухступенчатый критик (v2 / Phase 6)
+
+#### REQ-BLD-V2-01 — Устранение 5 критических дефектов генерации
+1. **Нормализация идентификаторов:** Устранение двойных префиксов `RULE_RULE-` через `normalize_rule_id(raw_id)`.
+2. **Типобезопасность триггеров:** `RuleTrigger.value` поддерживает `float | int | str | list[float] | list[str]`.
+3. **Сериализация противоречий:** Корректное сохранение и экспорт `contradictions` в `cluster.py`.
+4. **Фильтрация Claims:** Строгая фильтрация не сопоставленных утверждений (`mapped=True` для синтеза).
+5. **Валидация порогов:** Исключение придуманных чисел; разрешение базовых булевых констант (0.0/1.0) только в допустимых контекстах.
+**Scope:** Phase 6
+
+#### REQ-BLD-V2-02 — OllamaManager (Single-GPU Sequential Loader)
+Управление VRAM бюджетом (≤ 30 GB) на одной GPU (RTX 5090 32GB / RTX 4090 24GB). Последовательная загрузка и выгрузка моделей (`keep_alive: 0`), гарантия присутствия в памяти ровно одной 32B модели, трекинг задержки переключения и устойчивость к сбоям API.
+**Scope:** Phase 6
+
+#### REQ-BLD-V2-03 — Подсистема критика (Critic Subsystem Core)
+Модель вердикта `CriticVerdict` (`keep`, `reject`, `uncertain`, `fix`), абстрактный интерфейс `BaseCritic`, надежный парсер `_extract_json()` для извлечения ответов из reasoning-логов DeepSeek-R1 (`<think>...</think>`), гарантия абсолютного **fail-open** (любая ошибка критика транслируется в `keep`/`uncertain` без падения пайплайна).
+**Scope:** Phase 6
+
+#### REQ-BLD-V2-04 — Cluster Critic (Stage 5.2)
+Рецензирование и предварительная фильтрация кластеров утверждений специализированным морским промптом до синтеза правил. Отсечение справочных цитат, описаний конструкций яхты и дублирующихся тем (сокращение с ~1000 до 50–100 кластеров).
+**Scope:** Phase 6
+
+#### REQ-BLD-V2-05 — Rule Critic (Stage 5.4)
+Рецензирование и нормализация синтезированных правил (проверка триггеров, действий, severity, домена и дубликатов). Автоматическое исправление через `suggested_fix` и отсев недействующих гипотез (сокращение с 600+ до **40–50 верифицированных операционных правил** на книгу).
+**Scope:** Phase 6
+
+#### REQ-BLD-V2-06 — Пресеты конфигурации, YAML-файл, CLI и воронка метрик
+Поддержка полного файла настроек `builder_config.yaml` со всеми порогами Fallback v4.2, таймаутами и параметрами моделей. Пресеты `full` (32B VLM + 32B Extractor + 32B Critic), `basic` (32B baseline, critic disabled), `fast` (7B/14B). Флаги CLI `--config`, `--preset` и `--critic/--no-critic`. Сбор полной воронки конверсии `PipelineMetrics` и генерация расширенного отчета `ingest_report.md`.
+**Scope:** Phase 6
+
+#### REQ-BLD-V2-07 — Подсистема мониторинга здоровья и KillSwitch (Fallback v4.2)
+Модули `src/mkp_builder/fallback/`: `HealthMonitor` (CPU >85%, GPU util <50%, Offload >30s, VRAM >98%), `KillSwitch` (StopReason enum, StopEvent), `EventLogger` (`work/fallback_events.jsonl`), `RetryHelper` (1 retry с коротким таймаутом, primary/retry/hard limit по этапам).
+**Scope:** Phase 6
+
+#### REQ-BLD-V2-08 — VLM Fail-Policy и Batch Circuit Breaker
+Модули `VLMFailTracker` (1–4 ошибки VLM -> skip картинки + запись в `work/vlm/vlm_failures.jsonl`, 5 ошибок подряд -> STOP) и `BatchCircuitBreaker` (1 упавшая книга -> пропуск, 2 упавшие книги подряд -> STOP batch + Pod stop).
+**Scope:** Phase 6
+
+#### REQ-BLD-V2-09 — RunPod PodStopper и сохранение аварийного состояния
+Модули `PodStopper` (вызов RunPod REST/GraphQL API для остановки пода с 30s grace period) и `ShutdownOrchestrator` (сохранение частичного состояния книги, генерация `work/tui_signal.json` и `work/pipeline_stopped.jsonl`).
+**Scope:** Phase 6
+
+#### REQ-BLD-V2-10 — TUI Signal Watcher и звуковая сигнализация
+Модули `src/mkp_tui/`: `SignalWatcher` (`watchdog` на `tui_signal.json`), `AlertSound` (`winsound` на Windows / terminal bell на Linux с разделением warning/error/critical/success и флагом `--no-sound`), рендеринг экрана аварийного останова с таблицей провалов VLM.
+**Scope:** Phase 6
+
+---
+
+### RUNPOD-H: Гибридный конвейер (RunPod + OpenRouter / Phase 7)
+
+#### REQ-HYB-01 — OpenRouter API Client & Infrastructure
+`src/mkp_builder/openrouter/client.py`, `rate_limiter.py`, `circuit_breaker.py`: Httpx-клиент с повторными попытками, экспоненциальным backoff, чтением `Retry-After` (429), моментальным остановом при 402/401. Token Bucket Rate Limiter (150 req / 10s, 15 RPS). Circuit Breaker (5 ошибок подряд $\to$ OPEN, 300s cooldown, HALF_OPEN recovery).
+**Scope:** Phase 7
+
+#### REQ-HYB-02 — Balance Guard & Cost Tracking
+`src/mkp_builder/openrouter/balance_guard.py`, `cost_tracker.py`: Мониторинг кредитов через `/credits` каждые 5 минут, останов при остатке < $10 или < стоимости книги. Повызовный лог затрат в `costs.jsonl` на основе `total_cost` от OpenRouter, генерация `summary_{book_id}.json`.
+**Scope:** Phase 7
+
+#### REQ-HYB-03 — OpenRouter Batch API Subsystem
+`src/mkp_builder/openrouter/batch_client.py`: Асинхронная отправка кластеров и правил на DeepSeek R1 (`deepseek/deepseek-r1-0528`), загрузка файлов (`POST /files`), создание батча (`POST /batches`), поллинг (24h SLA), скачивание и парсинг результатов.
+**Scope:** Phase 7
+
+#### REQ-HYB-04 — PC Shutdown Persistence & Batch Recovery
+`src/mkp_builder/openrouter/checkpoint.py`: Сохранение `pending_batch.json`, позволяющее безопасно выключать ПК во время обработки батча на серверах OpenRouter. Возобновление поллинга при перезапуске, экран истории батчей `BatchesView` (hotkey `l`) с ручным скачиванием.
+**Scope:** Phase 7
+
+#### REQ-HYB-05 — 12-Stage Hybrid Phase Pipeline
+`src/mkp_builder/openrouter/phase.py`: Оркестрация 12 этапов (Filter2 Qwen VL 7B, VLM 32B, Claims Qwen 72B, Triplets Qwen 72B, Clustering local, Cluster Critic R1 Batch, Synthesize Qwen 72B, Rule Critic R1 Batch, Validation local, Guardrails local, Assemble bookpack v0.3.0, Ed25519 signing on PC) с чекпоинтами `checkpoints/{book_id}_state.json`.
+**Scope:** Phase 7
+
+#### REQ-HYB-06 — Rich TUI OpenRouter Monitor & Sound
+`src/mkp_tui_openrouter/`: Изолированный Rich-интерфейс с живым дашбордом (прогресс 12 этапов, стоимость в $, rate limiter, circuit breaker, live log), горячими клавишами (`q/b/s/r/l/d/i`), звуковыми оповещениями (`winsound`) и экраном истории батчей.
+**Scope:** Phase 7
+
+#### REQ-HYB-07 — Config, CLI & Pipeline Auto-Start
+`src/mkp_builder/openrouter/config.py`, `cli.py`, патч `pipeline.py`: Команда `python -m mkp_builder.openrouter.cli run`, автоматический старт OpenRouter-фазы после выгрузки с RunPod при наличии `OPENROUTER_API_KEY`, мульти-книжный `BatchCircuitBreaker` (2 ошибки подряд $\to$ STOP).
+**Scope:** Phase 7
+
+#### REQ-HYB-08 — Mock Integration Test Suite
+`tests/openrouter/`: 100% покрытие тестами всех компонентов OpenRouter (клиент, rate limiter, circuit breaker, balance guard, cost tracker, batch client, partial failure 95/5, checkpoint resume, E2E мок-тест).
+**Scope:** Phase 7
+
+---
+
 ## Продукт 2: `mkp-server`
 
 #### REQ-S01 — Архитектура хранилища `/storage/`
