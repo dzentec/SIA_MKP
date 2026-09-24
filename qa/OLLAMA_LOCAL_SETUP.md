@@ -41,9 +41,10 @@ os.environ["OLLAMA_MODELS"] = r"D:\AI_models\ollama"
 
 ## 3. Installed Models
 
-| Model Name | Model ID | Quantization / Architecture | Size on Disk |
-| :--- | :--- | :--- | :--- |
-| **`qwen2.5vl:7b`** | `5ced39dfa4ba` | Q4_K_M (Qwen2.5-VL with mmproj vision) | 6.0 GB |
+| Model Name | Model ID | Type / Purpose | Size on Disk | Speed (RTX 2060) |
+| :--- | :--- | :--- | :--- | :--- |
+| **`qwen2.5:7b`** | `845dbda0ea48` | Text LLM (Fast MCP Agent & RAG Answers) | 4.7 GB | **23.5 – 30 tok/s (~4–8s latency)** |
+| **`qwen2.5vl:7b`** | `5ced39dfa4ba` | VLM (Builder OCR & Image Annotations) | 6.0 GB | **7.5 – 8.9 tok/s** |
 
 ---
 
