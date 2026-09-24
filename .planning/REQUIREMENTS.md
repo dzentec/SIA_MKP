@@ -171,6 +171,10 @@ YAML-онтология (`sia_ontology.yaml`, `sia_relations.yaml`, `mapping.yam
 `tests/openrouter/`: 100% покрытие тестами всех компонентов OpenRouter (клиент, rate limiter, circuit breaker, balance guard, cost tracker, batch client, partial failure 95/5, checkpoint resume, E2E мок-тест).
 **Scope:** Phase 7
 
+#### REQ-HYB-09 — Трёхступенчатая фильтрация изображений (RUNPOD-H / OpenRouter)
+Модули `tools/openrouter/filters/`: `OpenRouterBackend` (кодирование base64, rate limiting, cost tracking), `RuleBasedImageFilter` (FILTER 1 на CPU), `VLMImageFilter` (FILTER 2: `qwen/qwen-2.5-vl-7b-instruct` через OpenRouter, strict fail-open), `VLMAnnotator` (FILTER 3: `qwen/qwen-2.5-vl-32b-instruct` через OpenRouter). Стоимость VLM этапа $\le \$0.07$ на книгу, логирование `image_filter_rejects.jsonl`.
+**Scope:** Phase 7
+
 ---
 
 ## Продукт 2: `mkp-server`

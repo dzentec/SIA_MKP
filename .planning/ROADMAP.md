@@ -12,7 +12,7 @@
 | 4 | QA & Acceptance | Сквозной прогон Golden Dataset + 15+ эталонных правил + тест Rollback/WAL | REQ-QA-01, QA-02 | 5 (✅ PASS) |
 | 5 | Full Evaluation & Quality Benchmark | Полный бенчмарк 2-х книг (95–110 вопросов, 7 блоков), Offline MCP Agent (Qwen), Baseline A/B/C, Gemini LLM-as-a-Judge (M1–M8) | REQ-EVAL-01..06 | 8 (✅ PASS) |
 | 6 | MKP-Builder Pipeline Upgrade, Critic, Fallback & Image Filtering (v4.2) | 5 критических багфиксов, OllamaManager (single-GPU VRAM ≤30GB), 3-ступенчатый фильтр картинок (226 ➔ ~50, CPU+7B), двухступенчатый fail-open критик (32B), подсистема аварийного останова Fallback v4.2, TUI сигналы и звук | REQ-BLD-V2-01..11 | 9 (В процессе) |
-| 7 | RUNPOD-H: Hybrid MKP Builder (RunPod + OpenRouter) | Гибридный конвейер (RunPod parse/VLM + ПК/OpenRouter LLM), OpenRouter Batch API (DeepSeek R1, 24h SLA), персистентность `pending_batch.json`, BalanceGuard ($10 limit), RateLimiter (150/10s), CircuitBreaker, изолированный Rich TUI | REQ-HYB-01..08 | 8 (Запланировано) |
+| 7 | RUNPOD-H: Hybrid MKP Builder (RunPod + OpenRouter) | Гибридный конвейер (RunPod parse/OCR + ПК/OpenRouter VLM & LLM), 3-ступенчатый фильтр картинок (OpenRouter API ≤$0.07), OpenRouter Batch API (DeepSeek R1, 24h SLA), персистентность `pending_batch.json`, BalanceGuard ($10 limit), RateLimiter (150/10s), CircuitBreaker, изолированный Rich TUI | REQ-HYB-01..09 | 9 (Запланировано) |
 
 ---
 
@@ -128,20 +128,21 @@
 ---
 
 ## Phase 7: RUNPOD-H — Hybrid MKP Builder (RunPod + OpenRouter) (Запланировано)
-**Goal:** Реализация гибридного конвейера RUNPOD-H (RunPod для parse+VLM, локальный ПК + OpenRouter API для всех текстовых LLM и критики), ускорение обработки книги в 2 раза (до 2–2.5 часов) при стоимости ~$1.30–$1.80 за книгу.  
+**Goal:** Реализация гибридного конвейера RUNPOD-H (RunPod для parse+OCR, локальный ПК + OpenRouter API для VLM и всех текстовых LLM и критики), 3-ступенчатая фильтрация картинок (стоимость VLM $\le \$0.07$), ускорение обработки книги в 2 раза (до 2–2.5 часов) при стоимости ~$1.30–$1.80 за книгу.  
 **Mode:** standard / hybrid-builder  
 **Duration:** 3–4 дня  
 **Plan:** `.planning/phase-7/PLAN.md`  
-**Spec:** `.init_doc/RUNPOD-H_Master Specification v1.0_1of2.md`, `.init_doc/RUNPOD-H_Master Specification v1.0_2of2.md`
+**Spec:** `.init_doc/RUNPOD-H_Master Specification v1.0_1of2.md`, `.init_doc/RUNPOD-H_Master Specification v1.0_2of2.md`, `.init_doc/Image Filtering for RUNPOD-H.md`
 
-**Requirements:** REQ-HYB-01, REQ-HYB-02, REQ-HYB-03, REQ-HYB-04, REQ-HYB-05, REQ-HYB-06, REQ-HYB-07, REQ-HYB-08
+**Requirements:** REQ-HYB-01, REQ-HYB-02, REQ-HYB-03, REQ-HYB-04, REQ-HYB-05, REQ-HYB-06, REQ-HYB-07, REQ-HYB-08, REQ-HYB-09
 
 **Success Criteria:**
 1. Httpx-клиент `OpenRouterClient` с повторными попытками, экспоненциальным backoff, RateLimiter (150/10s), CircuitBreaker (5 ошибок $\to$ OPEN).
 2. `BalanceGuard` ($10 лимит) и `CostTracker` (лог `costs.jsonl` на основе `total_cost` от OpenRouter).
-3. Асинхронный `BatchClient` (24h SLA) с обработкой частичных сбоев (Option A: 95 успехов, 5 в `batch_failures.jsonl`).
-4. Персистентность батчей через `pending_batch.json` с возможностью выключения ПК и восстановления по hotkey `l` (`BatchesView`).
-5. 12-этапный оркестратор `OpenRouterPhase` с пошаговыми чекпоинтами `state.json`.
-6. Изолированный Rich TUI монитор с горячими клавишами (`q/b/s/r/l/d/i`) и звуковыми сигналами.
-7. CLI команда `python -m mkp_builder.openrouter.cli run` и автоматический старт фазы в `pipeline.py`.
-8. 100% покрытие unit-тестами с моками httpx (`tests/openrouter/`).
+3. 3-ступенчатый фильтр картинок (`OpenRouterBackend`, `RuleBasedImageFilter` CPU, `VLMImageFilter` Qwen VL 7B, `VLMAnnotator` Qwen VL 32B) со стоимостью $\le \$0.07$ на книгу.
+4. Асинхронный `BatchClient` (24h SLA) с обработкой частичных сбоев (Option A: 95 успехов, 5 в `batch_failures.jsonl`).
+5. Персистентность батчей через `pending_batch.json` с возможностью выключения ПК и восстановления по hotkey `l` (`BatchesView`).
+6. 12-этапный оркестратор `OpenRouterPhase` с пошаговыми чекпоинтами `state.json`.
+7. Изолированный Rich TUI монитор с горячими клавишами (`q/b/s/r/l/d/i`) и звуковыми сигналами.
+8. CLI команда `python -m tools.openrouter.cli run` и автоматический старт фазы.
+9. 100% покрытие unit-тестами с моками httpx (`tests/openrouter/`).
