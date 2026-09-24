@@ -6,15 +6,17 @@
 
 ## 🧭 Архитектура системы (HLD v3.3.1)
 
-Система разделена на два независимых продукта в едином монорепозитории:
+Система разделена на два независимых продукта в едином монорепозитории и набор инструментов облачной оркестрации:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                      mkp-builder (offline, на берегу)                       │
 │                                                                             │
-│  [Парсинг] → [OCR] → [VLM Аннотация] → [3-ст. Верификация] → [Чанкинг] →    │
-│  → [Триплеты] → [Claims] → [Кластеризация] → [Синтез правил] → [Guardrails] │
-│  → [Подпись Ed25519 (I13)] → [Экспорт Signed Bookpack v0.3.0 (.zip / .zst)] │
+│  [Парсинг] → [3-ст. Фильтрация схем (CPU→7B→32B)] → [OCR] → [VLM Аннотация] │
+│  → [3-ст. Верификация] → [Чанкинг] → [Триплеты] → [Claims]                  │
+│  → [Кластеризация + ClusterCritic] → [Синтез правил + RuleCritic 32B]       │
+│  → [Fallback v4.2 & HealthMonitor] → [Guardrails] → [Подпись Ed25519]       │
+│  → [Экспорт Signed Bookpack v0.3.0 (.zip / .zst)]                           │
 │                                      │                                      │
 │                                      ▼                                      │
 │                      ┌──────────────────────────────┐                       │
@@ -61,22 +63,29 @@
 
 ---
 
-## 🔒 Ключевые принципы и гарантии (Инварианты v3.3.1)
+## 🔒 Ключевые принципы и гарантии (Инварианты v3.3.1 & v4.2)
 
-1. **Zero Hallucination Policy (Non-lie Policy):** Советник никогда не выдумывает правила. Каждое правило и числовой порог строго проверяются по цитатам первоисточника (`RuleSource`: `doc_id`, `page`, `chunk_id`, `quote`). Выдуманные пороги отсекаются валидатором.
-2. **Три уровня доставки знаний:**
+1. **Zero Hallucination Policy (Non-lie Policy):** Советник никогда не выдумывает правила. Каждое правило и числовой порог строго проверяются по цитатам первоисточника (`RuleSource`: `doc_id`, `page`, `chunk_id`, `quote`). Выдуманные пороги отсекаются валидатором и 32B критиком.
+2. **3-ступенчатая фильтрация изображений (3-Stage Image Filter):**
+   * **Stage 1 (CPU, ~0.001s/img):** Эвристика по плотности границ (edge density), концентрации чернил и геометрическим пропорциям (без отсечения монохромных схем по цвету).
+   * **Stage 2 (VLM 7B, ~0.8s/img):** Быстрая классификация типа изображения (диаграмма, схема, фото, декорация).
+   * **Stage 3 (VLM 32B, ~2.5s/img):** Глубокая валидация и отсев декоративных элементов с fail-open fallback (`keep`).
+3. **Двухэтапный критик правил (Dual-Stage Critic, Fail-Open):**
+   * `ClusterCritic` (на этапе кластеризации): Проверка связности утверждений.
+   * `RuleCritic` (на базе 32B LLM): Валидация точности триггеров и числовых порогов против оригинального текста. Опциональный флаг `--critic / --no-critic`.
+4. **Подсистема отказоустойчивости Fallback v4.2:**
+   * `HealthMonitor`, `KillSwitch`, `VLMFailTracker`, `PodStopper`, `RetryHelper` и `BatchCircuitBreaker` для защиты от сбоев GPU, перегрузок API и потери баланса.
+5. **Три уровня доставки знаний:**
    * **Слой 1 (Static Guardrails):** Скомпилированный markdown (`guardrails.md` ≤ 8000 симв.) внедряется прямо в системный промпт — безопасность гарантирована даже при сбое MCP.
    * **Слой 2 (Dynamic `query_rules`):** Запрос правил по текущей телеметрии (`tws`, `heel_angle`) и архетипу судна.
    * **Слой 3 (Deep `search_chunks`):** Семантический гибридный поиск по первоисточникам для развёрнутых объяснений.
-3. **Цифровая безопасность (Инвариант I13):** Все пакеты и манифесты подписываются ключом Ed25519 (`signature.ed25519`) по схеме RFC 8032 с защитой от подделки на USB-носителях (0 native deps, 100% offline).
-4. **Транзакционный конвейер и Rollback (Инварианты I0–I14):** 
+6. **Цифровая безопасность (Инвариант I13):** Все пакеты и манифесты подписываются ключом Ed25519 (`signature.ed25519`) по схеме RFC 8032 с защитой от подделки на USB-носителях (0 native deps, 100% offline).
+7. **Транзакционный конвейер и Rollback (Инварианты I0–I14):** 
    * 4-уровневое хранилище (`active/`, `backup/`, `fallback/`, `staging/`, `failed/`).
    * Журнал `apply.wal` с обязательным `fsync` директорий.
    * Атомарная замена через `renameat2(RENAME_EXCHANGE)` / `mv` + `fsync`.
    * Автоматический откат при сбое запуска и ручной откат в одну команду (I5).
-5. **User-layer Orphaning & Tombstones:** При обновлении T1 связанные пользовательские правила помечаются `orphaned=true` без автоматического удаления, а удалённые T1 чанки сохраняются как tombstones (`deprecated=true`) на 2 релиза.
-6. **Запрет Force-update в море (Инвариант I12):** Любое обновление требует подтверждения шкипера.
-7. **Zero Data Loss (визуальный слой):** Каждая схема сохраняется в PNG (scale=2.0) и получает VLM-описание с 3-ступенчатой верификацией.
+8. **User-layer Orphaning & Tombstones:** При обновлении T1 связанные пользовательские правила помечаются `orphaned=true` без автоматического удаления, а удалённые T1 чанки сохраняются как tombstones (`deprecated=true`) на 2 релиза.
 
 ---
 
@@ -85,15 +94,16 @@
 | Компонент | Технология | Версия / Модель | Назначение |
 | :--- | :--- | :--- | :--- |
 | **Среда выполнения** | Python | `3.11+ / 3.14` | Основной runtime |
+| **Конфигурация пайплайна** | PyYAML + Pydantic | `builder_config.yaml` | Пресеты: `local_7b`, `hybrid`, `clean_runpod`, `runpod_h`, `full_32b` |
 | **Криптография** | Pure Python Ed25519 | RFC 8032 | Цифровая подпись пакетов (0 native deps, 100% offline) |
-| **VLM (Vision-LLM)** | Qwen2.5-VL | `qwen2.5vl:7b` / `32b` via Ollama/vLLM | Распознавание и структурирование морских схем |
-| **Текстовая LLM** | Qwen2.5 | `qwen2.5:7b` / `32b` via Ollama | Извлечение триплетов, claims и синтез правил |
+| **VLM (Vision-LLM)** | Qwen2.5-VL | `qwen2.5vl:7b` / `32b` via Ollama/OpenRouter | Распознавание, фильтрация и структурирование схем |
+| **Текстовая LLM** | Qwen2.5 | `qwen2.5:7b` / `32b` via Ollama/OpenRouter | Извлечение триплетов, claims, синтез и критика правил |
 | **Embeddings** | FastEmbed / Sentence-Transformers | `intfloat/multilingual-e5-large` (1024-dim) | Плотные векторные представления (`passage:` / `query:`) |
 | **Vector DB** | LanceDB | `≥ 0.38` | Гибридный векторный и полнотекстовый поиск (FTS) |
 | **Graph Engine** | NetworkX | `latest` | Граф знаний сущностей, морских терминов и связей |
 | **MCP Server** | FastMCP | `≥ 2.2` (pinned) | Обслуживание бортового ИИ-советника |
 | **Парсинг PDF/DOCX/EPUB** | Docling + RapidOCR | `≥ 2.15` | Извлечение структуры, таблиц, схем и координат |
-| **CLI & TUI** | Typer + Click + Rich | `latest` | TUI с интерактивным выбором категорий и таблицами ревью |
+| **CLI & TUI** | Typer + Click + Rich | `latest` | Rich TUI с мониторингом GPU/VRAM, звуковыми уведомлениями и таблицами ревью |
 
 ---
 
@@ -103,10 +113,13 @@
 Doc2Rag/
 ├── .planning/                  # GSD-планирование, спецификации фаз и матрицы UAT
 │   ├── PROJECT.md              # Видение проекта, скоуп и ключевые архитектурные решения
-│   ├── ROADMAP.md              # Дорожная карта всех фаз (Phase 0–5)
-│   ├── REQUIREMENTS.md         # Реестр формальных требований и инвариантов
+│   ├── ROADMAP.md              # Дорожная карта всех фаз (Phase 0–7)
+│   ├── REQUIREMENTS.md         # Реестр формальных требований (REQ-*, REQ-BLD-V2-*, REQ-HYB-*)
 │   ├── STATE.md                # Текущий статус выполнения задач и решений
 │   └── phase-*/                # Детальные планы (PLAN.md) и отчеты приемки (UAT.md) по фазам
+│
+├── builder_config.yaml         # Конфигурация конвейера с пресетами (local_7b, hybrid, clean_runpod, runpod_h)
+├── server_config.yaml          # Конфигурация хранилища и параметров mkp-server
 │
 ├── ontology/                   # Формальная морская онтология предметной области
 │   ├── sia_ontology.yaml       # Иерархия классов, концептов и терминов яхтинга
@@ -123,32 +136,22 @@ Doc2Rag/
 │   │   └── cache.py            # Дисковый кэш тяжелых вычислений и запросов
 │   │
 │   ├── mkp_builder/            # Конвейер сборщика знаний и правил (на берегу)
-│   │   ├── cli.py              # CLI интерфейс (`mkp-builder build`, `mkp-builder review-rules`)
-│   │   ├── tui.py              # Интерактивный Rich TUI (выбор категории T1–T3, прогресс)
+│   │   ├── cli.py              # CLI интерфейс (`mkp-builder build`, `review-rules`, `--preset`, `--critic`)
+│   │   ├── tui.py              # Интерактивный Rich TUI (выбор категории T1–T3, прогресс, звук)
 │   │   ├── pipeline.py         # Главный оркестратор стадий сборки документа
+│   │   ├── ollama_manager.py   # Менеджер последовательной загрузки моделей в VRAM (single-GPU)
 │   │   ├── ocr.py              # Модуль OCR (RapidOCR) для сканов и неразмеченного текста
 │   │   ├── chunker.py          # Иерархический семантический чанкинг с перекрытиями
 │   │   ├── triplets.py         # Извлечение триплетов знаний (субъект-предикат-объект)
 │   │   ├── review.py           # Rich-таблицы для визуального ревью сгенерированных правил
-│   │   ├── parsers/            # Мультиформатные парсеры документов
-│   │   │   ├── base.py         # Базовый абстрактный класс BaseDocumentParser
-│   │   │   ├── pdf_parser.py   # Docling PDF парсер (таблицы, координаты, извлечение фигур)
-│   │   │   ├── epub_parser.py  # Парсер структуры EPUB (XHTML, оглавление, иллюстрации)
-│   │   │   └── docx_parser.py  # DOCX парсер структурированных документов
-│   │   ├── vlm/                # Модуль мультимодального анализа диаграмм
-│   │   │   ├── client.py       # Клиент Ollama VLM API
-│   │   │   ├── annotator.py    # Генерация описаний схем и извлечение числовых значений
-│   │   │   └── verifier.py     # 3-ступенчатая валидация качества визуальных аннотаций
-│   │   ├── extract/            # Извлечение атомарных утверждений (Claims)
-│   │   │   └── claims.py       # Извлечение фактов из текста и схем с привязкой к онтологии
-│   │   ├── synthesize/         # Кластеризация и синтез формальных правил
-│   │   │   ├── cluster.py      # Семантическая кластеризация связанных утверждений
-│   │   │   └── synthesize.py   # Синтез правил (триггеры, действия, пороги, цитаты первоисточника)
-│   │   ├── compile/            # Компиляция системных ограничений
-│   │   │   └── guardrails.py   # Сборка `guardrails.md` (≤ 8000 символов, только Approved T1)
-│   │   └── export/             # Упаковка и криптографическая подпись артефактов
-│   │       ├── bookpack.py     # Сборка архива `.bookpack.zip` v0.3.0 с контрольными суммами
-│   │       └── signer.py       # Ed25519 подпись и валидация манифеста (RFC 8032)
+│   │   ├── parsers/            # Мультиформатные парсеры документов (PDF, EPUB, DOCX)
+│   │   ├── filters/            # 3-ступенчатая фильтрация изображений (Stage 1 CPU, Stage 2/3 VLM)
+│   │   ├── vlm/                # Мультимодальный анализ диаграмм и верификатор
+│   │   ├── extract/            # Извлечение claims с привязкой к онтологии
+│   │   ├── synthesize/         # Кластеризация, критика (ClusterCritic) и синтез правил (RuleCritic 32B)
+│   │   ├── fallback/           # Подсистема отказоустойчивости v4.2 (HealthMonitor, RetryHelper, KillSwitch)
+│   │   ├── compile/            # Компиляция системных ограничений (guardrails.md)
+│   │   └── export/             # Упаковка и Ed25519 подпись .bookpack.zip v0.3.0
 │   │
 │   └── mkp_server/             # Бортовой сервер базы знаний и FastMCP сервисов
 │       ├── cli.py              # CLI интерфейс (`mkp-server serve`, `import`, `rollback`, `info`)
@@ -161,66 +164,37 @@ Doc2Rag/
 │       ├── graph.py            # Графовый движок NetworkX для поиска связанных морских сущностей
 │       ├── rules_store.py      # Сопоставитель правил по телеметрии (ветер, крен, паруса, судно)
 │       ├── security.py         # Защита от Path Traversal при отдаче диаграмм и ассетов
-│       ├── verifier.py         # Верификация целостности активного хранилища
-│       ├── lifecycle.py        # Управление жизненным циклом, самодиагностика и health checks
-│       └── models.py           # Серверные схемы запросов, ответов и метаданных
+│       └── lifecycle.py        # Управление жизненным циклом и health checks
 │
 ├── qa/                         # Модули приемочного тестирования, бенчмарков и датасетов
 │   ├── config.yaml             # Конфигурация порогов метрик и параметров бенчмарка
-│   ├── rubrics.py              # Формальные рубрики оценивания (M1–M8, M4 agreement, 5-балльная шкала)
+│   ├── rubrics.py              # Формальные рубрики оценивания (M1–M8, M4 agreement)
 │   ├── golden_dataset.json     # 30 стратифицированных вопросов (MVP QA)
 │   ├── golden_full_dataset.json # 114 всесторонних вопросов (7 блоков тем, Spec v1.1)
 │   ├── golden_rules.json       # 15 верифицированных правил T1 с точными цитатами
-│   ├── regression_pool.json    # Пул регрессионных и граничных тестов
 │   ├── offline_mcp_agent.py    # Автономный агент на базе локальной LLM с вызовами 10 MCP tools
-│   ├── eval_judge.py           # LLM-as-a-Judge движок (Gemini/Local) с доверительными интервалами CI
-│   ├── evaluator.py            # Модуль расчета агрегированных метрик качества
+│   ├── eval_judge.py           # LLM-as-a-Judge движок (Gemini/Local)
 │   ├── full_eval_runner.py     # Оркестратор полного бенчмарка ($N=3$ прогона, медиана, регрессии)
-│   ├── run_full_live_benchmark.py # Скрипт запуска полного живого бенчмарка
-│   ├── run_real_books_test.py  # Тестирование на полных реальных книгах
-│   ├── run_acceptance.py       # Автоматический запуск приемочного набора тестов
-│   ├── baseline_runner.py      # Сравнение с базовыми моделями (Direct LLM vs MCP Agent)
-│   ├── leakage_check.py        # Проверка отсутствия утечки данных между датасетами
-│   ├── demo_e2e.py             # Интерактивная сквозная демонстрация 10 MCP-инструментов
-│   ├── reports/                # Итоговые markdown-отчеты бенчмарков
-│   │   ├── full_eval_report.md # Отчет полного бенчмарка (Phase 5)
-│   │   ├── live_full_eval_report.md # Результаты живого прогона на полном датасете
-│   │   ├── real_books_eval_report.md # Результаты на книгах Dedekam Seamanship и Sail Trim
-│   │   └── failures_detail.md  # Детальный разбор единичных сбоев и классификация ошибок
-│   └── raw/                    # Сырые логи и ответы агента в формате JSONL
+│   └── reports/                # Итоговые markdown-отчеты бенчмарков (full_eval_report.md)
 │
 ├── tools/                      # Вспомогательные утилиты и облачная оркестрация
-│   └── runpod/                 # Облачный конвейер для тяжелых моделей (Qwen2.5-VL 32B на RTX 4090/A5000)
-│       ├── runpod_orchestrator.py # Оркестратор управления подами, SSH/SCP передачей и запуском
-│       ├── runpod_api.py       # GraphQL API клиент (управление состоянием подов и биллингом)
-│       ├── runpod_manager.py   # Высокоуровневый менеджер запуска, мониторинга и авто-останова
-│       ├── run_build_32b.py    # Автономный скрипт пайплайна на 32B VLM внутри облака
-│       ├── tui.py              # Rich TUI дашборд реального времени (GPU, vRAM, прогресс)
-│       ├── logger.py           # Сессионный логгер с метриками t/s
-│       ├── AGENT_GUIDE.md      # Руководство по управлению RunPod для ИИ-агентов
-│       └── RUNPOD_TUI_PLAN.md  # Архитектурный план и спецификация TUI-монитора
+│   ├── runpod/                 # ☁️ Clean RunPod (Автономный под с GPU для локальных моделей 32B)
+│   │   ├── runpod_orchestrator.py # Оркестратор управления подами, SSH/SCP передачей и запуском
+│   │   ├── runpod_api.py       # GraphQL API клиент (управление состоянием подов и биллингом)
+│   │   ├── runpod_manager.py   # Менеджер запуска, мониторинга и авто-останова
+│   │   ├── run_build_32b.py    # Автономный скрипт пайплайна на 32B VLM внутри облака
+│   │   ├── tui.py              # Rich TUI дашборд реального времени (GPU, vRAM, прогресс)
+│   │   ├── logger.py           # Сессионный логгер с метриками t/s
+│   │   └── AGENT_GUIDE.md      # Руководство по управлению RunPod для ИИ-агентов
+│   │
+│   └── openrouter/             # 🌐 RUNPOD-H (Гибридный билдер: RunPod GPU + OpenRouter API / Batch API)
+│       ├── openrouter_backend.py # Бэкенд OpenRouter с RateLimiter (150/10s), CircuitBreaker и BalanceGuard (<$10)
+│       ├── batch_processor.py  # Асинхронный процессор OpenRouter Batch API (24h SLA) с персистентностью
+│       ├── hybrid_orchestrator.py # Оркестратор гибридного пайплайна (Docling на GPU + LLM/VLM по API)
+│       ├── tui.py              # Rich TUI дашборд с мониторингом расходов ($), токенов и прогресса батчей
+│       └── AGENT_GUIDE.md      # Руководство по гибридной оркестрации RUNPOD-H
 │
-├── tests/                      # Набор автоматизированных тестов pytest (45 тестов)
-│   ├── test_builder.py         # Тесты парсеров, OCR, чанкера и сборщика
-│   ├── test_export.py          # Тесты упаковки bookpack и Ed25519 подписи (RFC 8032)
-│   ├── test_rules_pipeline.py  # Тесты извлечения claims, кластеризации и синтеза правил
-│   ├── test_server.py          # Тесты 10 MCP-инструментов, LanceDB и графа
-│   ├── test_invariants.py      # Проверка архитектурных инвариантов I0–I14
-│   ├── test_qa_invariants_stress.py # Стресс-тестирование WAL, аварийного отключения и отката
-│   ├── test_eval_dataset.py    # Валидация структуры и стратификации датасетов
-│   ├── test_eval_judge.py      # Тесты работы оценочного судьи и калибровки рубрик
-│   └── test_runpod_orchestrator.py # Тесты облачной оркестрации и API RunPod
-│
-├── poc/                        # Скрипты PoC валидации и проверки гипотез (Phase 0)
-│   ├── p0_01_docling_crop.py   # Проверка качества кропа схем через Docling
-│   ├── p0_02_vlm_stability.py  # Проверка стабильности и структурирования Qwen2.5-VL
-│   ├── p0_03_lancedb_fts.py    # Проверка гибридного поиска LanceDB
-│   ├── p0_04_e5_embeddings.py  # Проверка E5-large эмбеддингов
-│   ├── p0_05_ocr_compare.py    # Сравнение OCR движков
-│   ├── p0_06_ladybugdb.py      # Проверка графовых структур NetworkX
-│   ├── p0_07_epub_geometry.py  # Проверка извлечения геометрии из EPUB
-│   └── start_ollama.py         # Скрипт запуска локального Ollama с Flash Attention
-│
+├── tests/                      # Набор автоматизированных тестов pytest
 ├── pyproject.toml              # Конфигурация проекта, CLI entrypoints и зависимости
 └── README.md                   # Главная документация проекта
 ```
@@ -295,17 +269,19 @@ python poc/start_ollama.py
 
 ### 3. Сборка книги и правил (`mkp-builder`)
 
-```bash
-# Интерактивная сборка (TUI предложит выбрать категорию T1/T2/T2.5/T3)
-mkp-builder build --book "path/to/manual.pdf" --out "work/demo"
+Конвейер поддерживает различные пресеты выполнения (`builder_config.yaml`) и гибкое управление критиком:
 
-# Пакетная сборка с явным указанием категории T1 Base
+```bash
+# Сборка с локальным пресетом 7B (для ПК с 16GB VRAM, последовательная выгрузка моделей)
 mkp-builder build \
   --book "path/to/Illustrated_Seamanship.epub" \
-  --tier "T1" \
-  --profile "digital" \
-  --lang "en" \
+  --preset local_7b \
+  --tier T1 \
   --out "work/demo"
+
+# Сборка с включением/отключением 32B критика
+mkp-builder build --book "path/to/manual.pdf" --critic --out "work/demo"
+mkp-builder build --book "path/to/manual.pdf" --no-critic --out "work/demo"
 
 # Просмотр и ревью извлеченных правил через Rich CLI
 mkp-builder review-rules --rules "work/demo/books/dedekam_seamanship/rules.jsonl"
@@ -316,12 +292,8 @@ mkp-builder review-rules --rules "work/demo/books/dedekam_seamanship/rules.jsonl
 Сервер автоматически подхватывает настройки из `server_config.yaml` (по умолчанию `data/live_server_storage` для разработки):
 
 ```bash
-# Просмотр сводного дашборда состояния хранилища (автоматически из server_config.yaml)
+# Просмотр сводного дашборда состояния хранилища
 mkp-server info
-
-# Явное указание другого хранилища или файла настроек
-mkp-server info --storage "data/live_server_storage"
-mkp-server info --config "server_config.yaml"
 
 # Запуск MCP-сервера по протоколу stdio (для Claude Desktop / Open WebUI / СИА)
 mkp-server serve --transport stdio
@@ -341,10 +313,37 @@ mkp-server rollback --mode auto
 
 ---
 
+## 🛠 Облачные инструменты и гибридные режимы (`tools/`)
+
+В папке `tools/` размещены изолированные инструменты облачной обработки тяжелых книг:
+
+### 1. `tools/runpod/` — Clean RunPod (Self-Contained GPU Pod)
+* Автоматический деплой пода на **NVIDIA RTX 4090 / A5000 (24GB VRAM)**.
+* Локальный запуск тяжелых моделей (`qwen2.5vl:32b`, `qwen2.5:32b`) внутри пода.
+* **Auto-Stop & KillSwitch:** Автоматическая остановка пода при простое, завершении сборки или критических ошибках.
+* **Rich TUI:** Мониторинг GPU/VRAM, скорости инференса (t/s) и прогресса страниц в реальном времени.
+
+```bash
+# Запуск сборки книги в облаке RunPod
+python -m tools.runpod.runpod_manager --book "path/to/book.pdf" --tier T1
+```
+
+### 2. `tools/openrouter/` — RUNPOD-H (Hybrid Cloud + OpenRouter API)
+* **Разделение труда:** Тяжелый парсинг (Docling, RapidOCR, 3-Stage Image Filter) выполняется на недорогом RunPod GPU, а инференс VLM/LLM делегируется в **OpenRouter API / Batch API** со скидкой 50%.
+* **Строгий контроль бюджета:** `BalanceGuard` (остановка при остатке <$10), ограничение стоимости фильтрации изображений ($\le \$0.07$ на книгу).
+* **RateLimiter & CircuitBreaker:** Лимит 150 req / 10s, асинхронные ретраи при 429/503 и персистентность состояния очередей (`pending_batch.json`, 24h SLA).
+
+```bash
+# Запуск гибридного билдера RUNPOD-H
+python -m tools.openrouter.hybrid_orchestrator --book "path/to/book.pdf" --tier T1 --batch-mode
+```
+
+---
+
 ## 🧪 Тестирование и бенчмарки
 
 ```bash
-# Запуск всех 45 автоматизированных тестов проекта
+# Запуск всех автоматизированных тестов проекта
 pytest tests/ -v
 
 # Запуск приемочного бенчмарка (Acceptance Suite, Phase 4)
@@ -374,21 +373,7 @@ python qa/demo_e2e.py
 
 ---
 
-## ☁️ RunPod Cloud Pipeline (Zero-Touch GPU Orchestration)
-
-Для тяжелой обработки реальных иллюстрированных книг с использованием флагманской мультимодальной модели **Qwen2.5-VL 32B** разработан модуль облачной оркестрации [`tools/runpod/`](file:///d:/Tasks/My/SIA/DB/Doc2Rag/tools/runpod):
-
-* **Zero-Touch автоматизация:** Поднимает или переиспользует под на **NVIDIA RTX 4090 / A5000 (24GB VRAM)**, автоматически находит шаблон `base_sia_mkp`, передает книги по прямому SCP и запускает конвейер.
-* **Auto-Stop & Защита баланса:** По завершении экспорта и скачивания готовых `.bookpack.zip` под **автоматически выключается через RunPod API**, останавливая тарификацию ($0/час).
-* **Интерактивный TUI дашборд:** Отображение в реальном времени состояния GPU, VRAM, t/s и хода обработки страниц через Rich TUI.
-* **Локальное логирование:** Сессии фиксируются в `tools/runpod/logs/session_*.log` с сохранением метрик GPU, скорости генерации (t/s) и контекста ошибок.
-* **Документация и спецификация:**
-  * 📄 [`tools/runpod/AGENT_GUIDE.md`](file:///d:/Tasks/My/SIA/DB/Doc2Rag/tools/runpod/AGENT_GUIDE.md) — Исчерпывающее руководство для ИИ-агентов.
-  * 📄 [`tools/runpod/RUNPOD_TUI_PLAN.md`](file:///d:/Tasks/My/SIA/DB/Doc2Rag/tools/runpod/RUNPOD_TUI_PLAN.md) — Спецификация интерактивного Rich TUI дашборда и телеметрии.
-
----
-
-## 📋 Статус проекта
+## 📋 Статус проекта и дорожная карта
 
 * ✅ **Phase 0:** PoC & Validation (7/7 проверок пройдено).
 * ✅ **Phase 1:** `mkp-builder` Core (Парсинг + VLM + Верификация + Чанкинг).
@@ -397,5 +382,8 @@ python qa/demo_e2e.py
 * ✅ **Phase 3:** `mkp-server` 4-Tier Storage, WAL/Rollback (I0–I14) & 10 FastMCP Tools (8/8 задач PASS).
 * ✅ **Phase 4:** QA & Acceptance (100% PASS, 0% Hallucinations, 15/15 Инвариантов, `acceptance_report.md`).
 * ✅ **Phase 5:** Full Evaluation & Quality Benchmark (Spec v1.1, 114 вопросов, Offline MCP Agent, Gemini LLM-as-a-Judge, `full_eval_report.md`).
+* 🔄 **Phase 6:** MKP-Builder Pipeline Upgrade & Clean RUNPOD (5 багфиксов, OllamaManager для single-GPU, 3-ступенчатая фильтрация схем, двухэтапный критик правил, Fallback v4.2, `builder_config.yaml`).
+* ⏳ **Phase 7:** RUNPOD-H — Hybrid MKP Builder (RunPod GPU + OpenRouter API / Batch API 24h SLA, BalanceGuard <$10, RateLimiter, 3-stage VLM filter в `tools/openrouter/`).
+
 
 
