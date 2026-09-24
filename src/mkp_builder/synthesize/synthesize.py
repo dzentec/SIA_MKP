@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import re
-from typing import Any, Literal
+from typing import Any, Callable, Literal
 from pydantic import ValidationError
 
 from mkp_common.cache import PersistentCache, make_cache_key, compute_sha256_bytes
@@ -249,12 +249,21 @@ class RuleSynthesizer:
         claims: list[Claim],
         tier: Literal["T1", "T2", "T2.5"] = "T1",
         region: str | None = None,
+        on_progress: Callable[[int, int, Rule | None], None] | None = None,
     ) -> list[Rule]:
-        """Synthesize rules for all clusters."""
+        """Synthesize rules for all clusters with real-time progress reporting."""
         claims_map = {c.claim_id: c for c in claims}
         rules: list[Rule] = []
+        total_clusters = len(clusters)
 
-        for cluster in clusters:
+        logger.info(
+            "Starting rule synthesis for %d clusters from %d claims (tier=%s)",
+            total_clusters,
+            len(claims),
+            tier,
+        )
+
+        for idx, cluster in enumerate(clusters, start=1):
             rule = self.synthesize_rule_from_cluster(
                 cluster=cluster,
                 claims_map=claims_map,
@@ -264,5 +273,8 @@ class RuleSynthesizer:
             if rule:
                 rules.append(rule)
 
-        logger.info("Synthesized %d rules from %d clusters (tier=%s)", len(rules), len(clusters), tier)
+            if on_progress:
+                on_progress(idx, total_clusters, rule)
+
+        logger.info("Successfully synthesized %d rules from %d clusters (tier=%s)", len(rules), total_clusters, tier)
         return rules

@@ -262,25 +262,38 @@ class BuilderPipeline:
         guardrails_md = ""
 
         if not skip_rules:
-            # Claims
-            self.tui.update_stage("rules", completed=25)
+            # 5.1 Claims extraction
+            self.logger.info("Extracting claims across %d chunks...", len(chunks))
+            self.tui.update_stage("rules", completed=10, total=100)
             claims = self.claims_extractor.extract_from_chunks(chunks=chunks, tier=tier)
+            self.tui.stats["claims"] = len(claims)
             
-            # Clustering
-            self.tui.update_stage("rules", completed=50)
+            # 5.2 Clustering
+            self.logger.info("Clustering %d claims...", len(claims))
+            self.tui.update_stage("rules", completed=30, total=100)
             clusterer = ClaimsClusterer(book_id=actual_book_id)
             clusters = clusterer.cluster_claims(claims=claims, tier=tier if tier != "T3" else "T1")
+            self.tui.stats["clusters"] = len(clusters)
+            self.logger.info("Created %d semantic clusters for synthesis", len(clusters))
 
-            # Synthesis
-            self.tui.update_stage("rules", completed=75)
+            # 5.3 Granular rule synthesis (30% -> 90%)
+            def _on_rule_progress(idx: int, total: int, rule: Rule | None) -> None:
+                pct = 30 + int(60.0 * (idx / max(total, 1)))
+                if hasattr(self.ollama, "last_tps") and self.ollama.last_tps > 0:
+                    self.tui.stats["gpu_tps"] = self.ollama.last_tps
+                self.tui.update_stage("rules", completed=pct, total=100)
+
             rules = self.synthesizer.synthesize_rules(
                 clusters=clusters,
                 claims=claims,
                 tier=tier if tier != "T3" else "T1",
                 region=region,
+                on_progress=_on_rule_progress,
             )
+            self.tui.stats["rules"] = len(rules)
 
-            # Golden rules inclusion for T1 Base
+            # 5.4 Golden rules inclusion for T1 Base & Guardrails compilation (90% -> 100%)
+            self.tui.update_stage("rules", completed=90, total=100)
             if tier == "T1" and seed_golden_rules:
                 golden_rules = generate_golden_t1_rules(book_id=actual_book_id)
                 # deduplicate by rule_id
@@ -288,15 +301,17 @@ class BuilderPipeline:
                 for gr in golden_rules:
                     if gr.rule_id not in existing_ids:
                         rules.append(gr)
+                self.tui.stats["rules"] = len(rules)
 
             # Compile Guardrails
             guardrails_md = self.guardrails_compiler.compile(rules=rules, include_draft=True)
-            self.tui.update_stage("rules", completed=100)
+            self.tui.update_stage("rules", completed=100, total=100)
         else:
             if tier == "T1" and seed_golden_rules:
                 rules = generate_golden_t1_rules(book_id=actual_book_id)
                 guardrails_md = self.guardrails_compiler.compile(rules=rules, include_draft=True)
-            self.tui.update_stage("rules", completed=100)
+                self.tui.stats["rules"] = len(rules)
+            self.tui.update_stage("rules", completed=100, total=100)
 
         # 6. Write local jsonl files
         self.tui.update_stage("export", completed=20)

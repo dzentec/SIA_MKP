@@ -67,6 +67,9 @@ class BuilderProgressTracker:
             "needs_review": 0,
             "chunks": 0,
             "triplets": 0,
+            "claims": 0,
+            "clusters": 0,
+            "rules": 0,
             "gpu_tps": 0.0,
             "archive_path": "",
         }
@@ -161,8 +164,11 @@ class BuilderProgressTracker:
         table.add_row("Needs Review (QA)", f"[{nr_style}]{self.stats['needs_review']}[/{nr_style}]")
         table.add_row("Generated Chunks", str(self.stats["chunks"]))
         table.add_row("Extracted Triplets", str(self.stats["triplets"]))
+        table.add_row("Extracted Claims", str(self.stats["claims"]))
+        table.add_row("Semantic Clusters", str(self.stats["clusters"]))
+        table.add_row("Synthesized Rules", str(self.stats["rules"]))
         if self.stats["archive_path"]:
-            table.add_row("Exported Archive", str(self.stats["archive_path"]))
+            table.add_row("Exported Archive", self.stats["archive_path"])
         table.add_row("Elapsed Time", f"{duration_sec:.1f} s")
 
         self.console.print(Panel(table, expand=False))

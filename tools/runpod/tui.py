@@ -245,8 +245,23 @@ class RunPodDashboard:
                 elif key == "parse" and st_status == "completed":
                     figures = telem.get("stats", {}).get("figures", 0)
                     detail = f"({figures} изображений найдено)"
-                elif key == "rules" and st_status == "completed":
-                    detail = f"({completed} правил синтезировано)" if completed > 0 else ""
+                elif key == "rules":
+                    if st_status == "in_progress":
+                        clusters_total = telem.get("stats", {}).get("clusters", 0)
+                        claims_total = telem.get("stats", {}).get("claims", 0)
+                        if clusters_total > 0:
+                            detail = f"({completed}% · {clusters_total} кластеров)"
+                        elif claims_total > 0:
+                            detail = f"({completed}% · {claims_total} claims)"
+                        else:
+                            detail = f"({completed}%)"
+                    elif st_status == "completed":
+                        rules_count = telem.get("stats", {}).get("rules", 0)
+                        clusters_total = telem.get("stats", {}).get("clusters", 0)
+                        if clusters_total > 0:
+                            detail = f"({rules_count} правил из {clusters_total} кластеров)"
+                        else:
+                            detail = f"({rules_count} правил синтезировано)" if rules_count > 0 else "(готово)"
                 elif key == "export" and st_status == "completed":
                     detail = "(архив сформирован)"
             elif key == "parse" and st_status == "completed":

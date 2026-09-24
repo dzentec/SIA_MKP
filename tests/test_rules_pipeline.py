@@ -314,3 +314,44 @@ def test_bookpack_v03_export_and_signature_verification():
             checksums_raw = zf.read("checksums.sha256").decode("utf-8")
             payload = manifest_raw.encode("utf-8") + b"\n---CHECKSUMS---\n" + checksums_raw.encode("utf-8")
             assert verify_data_hex(payload, sig_hex) is True
+
+
+def test_synthesize_rules_progress_callback():
+    """Verify that on_progress callback is invoked for every cluster during synthesis."""
+    from unittest.mock import MagicMock
+    from mkp_builder.synthesize.synthesize import RuleSynthesizer
+
+    mock_client = MagicMock()
+    mock_client.generate.return_value = json.dumps({
+        "rule": {
+            "rule_id": "RULE_TRIM_TEST_01",
+            "domain": "trim",
+            "triggers": [{"ontology_field": "telemetry.tws", "operator": ">=", "value": 20.0, "unit": "kt"}],
+            "actions": [{"action_id": "actions.reef", "description": "Reef"}],
+            "severity": "warning",
+        }
+    })
+
+    synthesizer = RuleSynthesizer(client=mock_client)
+
+    src = RuleSource(doc_id="d1", page=1, chunk_id="c1", quote="wind 20 kt")
+    claims = [
+        Claim(claim_id=f"cl_{i}", text=f"claim {i}", type="procedural", subject="s", predicate="p", object="o", source=src)
+        for i in range(3)
+    ]
+    clusters = [
+        Cluster(cluster_id=f"clust_{i}", topic=f"topic_{i}", dominant_type="procedural", archetypes=["all_monohulls"], claims=[f"cl_{i}"])
+        for i in range(3)
+    ]
+
+    progress_events = []
+    def _cb(idx: int, total: int, rule: Rule | None) -> None:
+        progress_events.append((idx, total, rule.rule_id if rule else None))
+
+    rules = synthesizer.synthesize_rules(clusters=clusters, claims=claims, tier="T1", on_progress=_cb)
+
+    assert len(progress_events) == 3
+    assert progress_events[0] == (1, 3, "RULE_TRIM_TEST_01")
+    assert progress_events[1] == (2, 3, "RULE_TRIM_TEST_01")
+    assert progress_events[2] == (3, 3, "RULE_TRIM_TEST_01")
+    assert len(rules) == 3
