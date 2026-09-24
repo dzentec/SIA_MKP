@@ -1,0 +1,29 @@
+# server_config.yaml
+# Конфигурация MKP-Server для разработки и боевого режима (HLD v3.3.1)
+
+# Основной путь к хранилищу базы знаний (Active / Backup / Fallback / LanceDB)
+# Для разработки с боевой книгой "Sail and Rig Tuning" используйте: data/live_server_storage
+# Для локальных unit-тестов / фикстур используйте: storage
+storage_path: "data/live_server_storage"
+
+# Сетевой транспорт и протокол FastMCP
+server:
+  # Режим транспорта: "stdio" (для Claude Desktop / Open WebUI) или "http" (для SSE веб-клиентов)
+  transport: "stdio"
+  host: "127.0.0.1"
+  port: 8000
+  log_level: "INFO"
+
+# Настройки безопасности и верификации
+security:
+  enforce_ed25519: true
+  allow_path_traversal_check: true
+
+# Профили хранилища для быстрого переключения
+profiles:
+  dev_live:
+    storage_path: "data/live_server_storage"
+    description: "Боевая база знаний Sail and Rig Tuning (308 чанков, 341 правило, 1185 триплетов)"
+  test_fixture:
+    storage_path: "storage"
+    description: "Тестовая фикстура для unit-тестов и стресс-тестов WAL"

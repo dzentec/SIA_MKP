@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Optional
 import typer
+import yaml
 from rich.console import Console
 from rich.table import Table
 
@@ -24,12 +26,36 @@ app = typer.Typer(
 console = Console()
 
 
+def resolve_storage_path(storage: Optional[Path] = None, config_path: Optional[Path] = None) -> Path:
+    """Resolve storage path from explicit CLI argument, config file, environment variable, or default."""
+    if storage is not None and str(storage) not in (".", "./storage", "storage"):
+        return storage
+
+    candidate_configs = [config_path] if config_path else [Path("server_config.yaml"), Path("config.yaml")]
+    for cfg in candidate_configs:
+        if cfg and cfg.exists():
+            try:
+                with open(cfg, "r", encoding="utf-8") as f:
+                    data = yaml.safe_load(f) or {}
+                if "storage_path" in data and data["storage_path"]:
+                    return Path(data["storage_path"])
+            except Exception:
+                pass
+
+    if "MKP_STORAGE_PATH" in os.environ and os.environ["MKP_STORAGE_PATH"]:
+        return Path(os.environ["MKP_STORAGE_PATH"])
+
+    return storage if storage is not None else Path("./storage")
+
+
 @app.command("info")
 def info_command(
-    storage: Path = typer.Option(Path("./storage"), "--storage", "-s", help="Storage root directory"),
+    storage: Optional[Path] = typer.Option(None, "--storage", "-s", help="Storage root directory"),
+    config: Optional[Path] = typer.Option(None, "--config", "-c", help="Path to server_config.yaml"),
 ):
     """Display comprehensive storage metrics, generation and registered books."""
-    mgr = StorageManager(storage)
+    resolved_storage = resolve_storage_path(storage, config)
+    mgr = StorageManager(resolved_storage)
     stats = mgr.get_stats()
     reg = mgr.load_registry()
 
@@ -66,12 +92,14 @@ def info_command(
 @app.command("import")
 def import_command(
     package: Path = typer.Argument(..., help="Path to .bookpack.zip package or delta"),
-    storage: Path = typer.Option(Path("./storage"), "--storage", "-s", help="Storage root directory"),
+    storage: Optional[Path] = typer.Option(None, "--storage", "-s", help="Storage root directory"),
+    config: Optional[Path] = typer.Option(None, "--config", "-c", help="Path to server_config.yaml"),
     update_type: str = typer.Option("full", "--type", "-t", help="Update type: full | t1_delta | user_delta"),
     skip_sig: bool = typer.Option(False, "--skip-sig", help="Skip signature verification (testing only)"),
 ):
     """Import and apply a Bookpack package or delta with full transactional WAL pipeline."""
-    mgr = StorageManager(storage)
+    resolved_storage = resolve_storage_path(storage, config)
+    mgr = StorageManager(resolved_storage)
     lifecycle = LifecycleManager(mgr)
 
     console.print(f"[bold cyan]Applying {update_type} from {package.name}...[/bold cyan]")
@@ -90,11 +118,13 @@ def import_command(
 
 @app.command("rollback")
 def rollback_command(
-    storage: Path = typer.Option(Path("./storage"), "--storage", "-s", help="Storage root directory"),
+    storage: Optional[Path] = typer.Option(None, "--storage", "-s", help="Storage root directory"),
+    config: Optional[Path] = typer.Option(None, "--config", "-c", help="Path to server_config.yaml"),
     mode: str = typer.Option("auto", "--mode", "-m", help="Rollback mode: auto | base-reset | factory"),
 ):
     """Rollback storage state using 1-backup (N-1) or multi-tier fallback (Invariants I1, I5, I8)."""
-    mgr = StorageManager(storage)
+    resolved_storage = resolve_storage_path(storage, config)
+    mgr = StorageManager(resolved_storage)
     rb_mgr = RollbackManager(mgr.config)
 
     rb_mode = RollbackMode(mode)
@@ -110,10 +140,12 @@ def rollback_command(
 
 @app.command("verify")
 def verify_command(
-    storage: Path = typer.Option(Path("./storage"), "--storage", "-s", help="Storage root directory"),
+    storage: Optional[Path] = typer.Option(None, "--storage", "-s", help="Storage root directory"),
+    config: Optional[Path] = typer.Option(None, "--config", "-c", help="Path to server_config.yaml"),
 ):
     """Verify integrity of storage layers and checksums."""
-    mgr = StorageManager(storage)
+    resolved_storage = resolve_storage_path(storage, config)
+    mgr = StorageManager(resolved_storage)
     active_bp = mgr.config.active_dir / "bookpack"
     if not active_bp.exists():
         console.print("[yellow]Active storage is empty.[/yellow]")
@@ -131,10 +163,12 @@ def verify_command(
 
 @app.command("guardrails")
 def guardrails_command(
-    storage: Path = typer.Option(Path("./storage"), "--storage", "-s", help="Storage root directory"),
+    storage: Optional[Path] = typer.Option(None, "--storage", "-s", help="Storage root directory"),
+    config: Optional[Path] = typer.Option(None, "--config", "-c", help="Path to server_config.yaml"),
 ):
     """Print compiled static guardrails markdown."""
-    engine = MKPServerEngine(storage)
+    resolved_storage = resolve_storage_path(storage, config)
+    engine = MKPServerEngine(resolved_storage)
     md = engine.get_guardrails()
     if md:
         console.print(md)
@@ -146,7 +180,8 @@ def guardrails_command(
 def query_rules_command(
     archetype: str = typer.Option(..., "--archetype", "-a", help="Boat archetype"),
     telemetry: str = typer.Option("{}", "--telemetry", "-t", help="Telemetry JSON dict e.g. '{\"tws\": 25}'"),
-    storage: Path = typer.Option(Path("./storage"), "--storage", "-s", help="Storage root directory"),
+    storage: Optional[Path] = typer.Option(None, "--storage", "-s", help="Storage root directory"),
+    config: Optional[Path] = typer.Option(None, "--config", "-c", help="Path to server_config.yaml"),
     domain: Optional[str] = typer.Option(None, "--domain", "-d", help="Domain filter"),
     tier: Optional[str] = typer.Option(None, "--tier", help="Tier filter"),
 ):
@@ -157,7 +192,8 @@ def query_rules_command(
         console.print(f"[bold red]Invalid telemetry JSON:[/bold red] {e}")
         raise typer.Exit(code=1)
 
-    engine = MKPServerEngine(storage)
+    resolved_storage = resolve_storage_path(storage, config)
+    engine = MKPServerEngine(resolved_storage)
     rules = engine.query_rules(
         archetype=archetype,
         telemetry=telemetry_dict,
@@ -175,10 +211,12 @@ def query_rules_command(
 @app.command("remove-book")
 def remove_book_command(
     book_id: str = typer.Argument(..., help="Book ID to remove"),
-    storage: Path = typer.Option(Path("./storage"), "--storage", "-s", help="Storage root directory"),
+    storage: Optional[Path] = typer.Option(None, "--storage", "-s", help="Storage root directory"),
+    config: Optional[Path] = typer.Option(None, "--config", "-c", help="Path to server_config.yaml"),
 ):
     """Remove a book record from base registry."""
-    mgr = StorageManager(storage)
+    resolved_storage = resolve_storage_path(storage, config)
+    mgr = StorageManager(resolved_storage)
     removed = mgr.remove_book_from_registry(book_id)
     if removed:
         console.print(f"[bold green]Removed book '{book_id}' from registry.[/bold green]")
@@ -188,17 +226,19 @@ def remove_book_command(
 
 @app.command("serve")
 def serve_command(
-    storage: Path = typer.Option(Path("./storage"), "--storage", "-s", help="Storage root directory"),
+    storage: Optional[Path] = typer.Option(None, "--storage", "-s", help="Storage root directory"),
+    config: Optional[Path] = typer.Option(None, "--config", "-c", help="Path to server_config.yaml"),
     transport: str = typer.Option("stdio", "--transport", "-t", help="Transport mode: stdio | http"),
     port: int = typer.Option(8000, "--port", "-p", help="HTTP port (only used with --transport http)"),
 ):
     """Start FastMCP server serving 10 knowledge tools."""
-    server = create_fastmcp_server(storage)
+    resolved_storage = resolve_storage_path(storage, config)
+    server = create_fastmcp_server(resolved_storage)
     if transport == "http":
-        console.print(f"[bold green]Starting FastMCP server on http://127.0.0.1:{port}[/bold green]")
+        console.print(f"[bold green]Starting FastMCP server on http://127.0.0.1:{port} (storage: {resolved_storage})[/bold green]")
         server.run(transport="sse", port=port, host="127.0.0.1")
     else:
-        console.print("[bold green]Starting FastMCP server via stdio transport[/bold green]")
+        console.print(f"[bold green]Starting FastMCP server via stdio transport (storage: {resolved_storage})[/bold green]")
         server.run(transport="stdio")
 
 
